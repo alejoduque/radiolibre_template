@@ -3,10 +3,10 @@
  * polling loop that keeps the stream list current.
  */
 
-import { POLL_INTERVAL_MS } from './config.js';
-import { fetchStreams } from './icecast.js';
-import { StreamPlayer } from './player.js';
-import { PlayerUI } from './ui.js';
+import { POLL_INTERVAL_MS } from './config.js?v=1';
+import { fetchStreams } from './icecast.js?v=1';
+import { StreamPlayer } from './player.js?v=1';
+import { PlayerUI } from './ui.js?v=1';
 
 const el = {
   select: document.getElementById('stream-select'),

@@ -7,11 +7,10 @@
     <meta name="description" content="La radio como lugar común. Transmisiones colaborativas de radio en red desde subamérica.">
 
     <link rel="icon" href="./assets/logo.jpeg">
-    <link rel="stylesheet" href="./assets/styles.css">
-
-    <!-- The stream list is fetched from here; warming the connection early
-         shaves a round trip off the first status request. -->
-    <link rel="preconnect" href="https://live.altred.xyz" crossorigin>
+    <!-- ?v= on the asset URLs is deliberate: nginx serves .js and .css here as
+         `immutable` for a year, so an update only reaches returning listeners
+         if the URL changes. Bump every ?v= together. See assets/js/config.js. -->
+    <link rel="stylesheet" href="./assets/styles.css?v=1">
 </head>
 
 <body>
@@ -80,6 +79,6 @@
         </ul>
     </nav>
 
-    <script type="module" src="./assets/js/main.js"></script>
+    <script type="module" src="./assets/js/main.js?v=1"></script>
 </body>
 </html>
