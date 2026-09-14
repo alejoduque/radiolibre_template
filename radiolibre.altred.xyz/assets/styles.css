@@ -1,0 +1,381 @@
+/*
+ * RadioLibre — radiolibre.altred.xyz
+ *
+ * Extracted from the inline <style> block the page used to carry. The visual
+ * design is unchanged: black ground, white type, inverted logo, pill nav.
+ *
+ * Rules for the old "Bloque 79" section were dropped — that markup no longer
+ * exists on the page, so they styled nothing.
+ */
+
+@font-face {
+  font-family: 'ZKM Serendipity';
+  src: url('https://zkm.de/themes/custom/zkm/typeface/WiP_ZKMSerendipity/ZKMSerendipity-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --bg: #000;
+  --fg: #fff;
+  --fg-dim: #ccc;
+  --surface: #222;
+  --border: rgba(255, 255, 255, 0.6);
+  --glow: rgba(255, 255, 255, 0.3);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'ZKM Serendipity', Arial, Helvetica, sans-serif;
+  background-color: var(--bg);
+  color: var(--fg);
+  margin: 0;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  justify-content: space-between;
+  /* Native form and media controls follow this rather than rendering light. */
+  color-scheme: dark;
+}
+
+.main-content-wrapper {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 15px;
+  text-align: left;
+}
+
+/* ---------------------------------------------------------------- typography */
+
+h1 {
+  font-size: 2.85em;
+  text-align: center;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  /* Sits above the logo, which is pulled up underneath it. */
+  position: relative;
+  z-index: 1;
+}
+
+p {
+  line-height: 1.5;
+  margin-bottom: 12px;
+  text-align: center;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Was an <h3> nested inside a <p>, which is invalid; it was only ever there
+   for its size and weight. */
+.tagline {
+  font-size: 1.17em;
+  font-weight: bold;
+}
+
+a {
+  color: var(--fg);
+  text-decoration: none;
+  transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+a:hover {
+  color: var(--fg-dim);
+}
+
+/* -------------------------------------------------------------------- layout */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.main-image {
+  /* Pulls the title down over the logo. */
+  margin-bottom: -25px;
+  text-align: center;
+  width: 100%;
+  position: relative;
+  z-index: 0;
+}
+
+.main-image img {
+  max-width: 350px;
+  height: auto;
+  border-radius: 10px;
+  border: 2px solid var(--fg);
+  box-shadow: 0 0 15px var(--glow);
+  filter: invert(100%);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: inline-block;
+  margin: 0 auto;
+}
+
+.main-image img:hover {
+  transform: scale(1.25);
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.5);
+}
+
+/* -------------------------------------------------------------------- player */
+
+.player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 700px;
+  margin: 30px auto;
+}
+
+.player__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  width: 100%;
+}
+
+.player__label {
+  /* Present for screen readers; the dropdown reads clearly on its own. */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.player__select {
+  font-family: inherit;
+  font-size: 0.95em;
+  color: var(--fg);
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 25px;
+  padding: 10px 18px;
+  min-width: 240px;
+  max-width: 100%;
+  cursor: pointer;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.player__select:hover:not(:disabled) {
+  border-color: var(--fg);
+  box-shadow: 0 0 15px var(--glow);
+}
+
+.player__select:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.player__audio {
+  flex: 1 1 260px;
+  min-width: 240px;
+  max-width: 320px;
+  background-color: var(--surface);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+.player__status {
+  margin: 0;
+  font-size: 0.9em;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  min-height: 1.2em;
+}
+
+/* A live stream deserves a visible cue that it really is live. */
+.player__status[data-state='playing']::before {
+  content: '';
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background-color: #fff;
+  vertical-align: baseline;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.player__status[data-state='playing'] {
+  color: var(--fg);
+}
+
+.player__status[data-state='reconnecting'],
+.player__status[data-state='error'] {
+  color: #ff9b9b;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player__status[data-state='playing']::before {
+    animation: none;
+  }
+  .main-image img,
+  a,
+  .player__select {
+    transition: none;
+  }
+}
+
+.player__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 24px;
+  margin: 0;
+  font-size: 0.9em;
+  text-align: center;
+}
+
+.player__meta-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.player__meta dt {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--fg-dim);
+  font-size: 0.85em;
+}
+
+.player__meta dd {
+  margin: 0;
+}
+
+.player__retry {
+  font-family: inherit;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--fg);
+  border-radius: 25px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.player__retry:hover {
+  background-color: var(--fg);
+  color: var(--bg);
+}
+
+/* Visible keyboard focus, which the original stylesheet never provided. */
+.player__select:focus-visible,
+.player__retry:focus-visible,
+.player__audio:focus-visible,
+nav a:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------- navigation */
+
+nav {
+  margin-top: 20px;
+  width: 100%;
+}
+
+nav ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+}
+
+nav a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: 1px solid var(--fg);
+  border-radius: 25px;
+  text-transform: uppercase;
+  font-size: 0.9em;
+  font-weight: bold;
+}
+
+nav a:hover {
+  background-color: var(--fg);
+  color: var(--bg);
+  box-shadow: 0 0 15px var(--glow);
+}
+
+nav a svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+/* -------------------------------------------------------------- responsive */
+
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2em;
+  }
+
+  .player__controls {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .player__select,
+  .player__audio {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  nav ul {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  nav li {
+    width: 80%;
+  }
+
+  nav a {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.8em;
+  }
+
+  .main-image img {
+    max-width: 260px;
+  }
+}

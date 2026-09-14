@@ -1,0 +1,10 @@
+{
+  "name": "radiolibre-altred",
+  "private": true,
+  "type": "module",
+  "description": "radiolibre.altred.xyz - static site, no build step. This file exists only so `node --test` treats the ES modules as ES modules.",
+  "scripts": {
+    "test": "node --test",
+    "serve": "python3 -m http.server 8777"
+  }
+}
