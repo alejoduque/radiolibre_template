@@ -157,9 +157,54 @@ done
 [ "$published" -gt 0 ] || die "nothing to publish: none of the PUBLISH entries exist under $WEBROOT"
 
 if [ "$DRY_RUN" -eq 1 ]; then
-  echo "would publish $published director(ies):"
-  cut -f1 "$manifest" | sed 's/^/  /'
+  # Print every path that would become public. The whole point of this tool is
+  # controlling what is exposed, so the rehearsal has to show the actual list,
+  # not just the directory names.
   echo "would write: $OUTPUT"
+  echo "would publish $published director(ies). Entries that would become public:"
+  echo
+  MANIFEST="$manifest" python3 - <<'PYTHON'
+import json, os
+
+PROXIED = (".mp3", ".ogg", ".aac", ".opus", ".m3u", ".pls")
+files = dirs = blocked = 0
+
+def walk(nodes, base):
+    global files, dirs, blocked
+    for node in nodes:
+        kind, name = node.get("type"), node.get("name", "")
+        if kind not in ("directory", "file") or not name:
+            continue
+        path = "/".join(base + [name])
+        if kind == "directory":
+            dirs += 1
+            print(f"  dir   /{path}/")
+            walk(node.get("contents", []), base + [name])
+        else:
+            files += 1
+            if name.lower().endswith(PROXIED):
+                blocked += 1
+                print(f"  BLOCK /{path}   (Icecast proxy swallows this extension)")
+            else:
+                print(f"  file  /{path}")
+
+with open(os.environ["MANIFEST"], encoding="utf-8") as fh:
+    for line in fh:
+        line = line.rstrip("\n")
+        if not line:
+            continue
+        rel, path = line.split("\t", 1)
+        with open(path, encoding="utf-8", errors="replace") as jf:
+            data = json.load(jf)
+        root = next((n for n in data if n.get("type") == "directory"), None)
+        walk(root.get("contents", []) if root else [],
+             [] if rel == "." else [rel])
+
+print()
+print(f"  {dirs} folder(s), {files} file(s)"
+      + (f", {blocked} not servable" if blocked else ""))
+print("  nothing written (--dry-run)")
+PYTHON
   exit 0
 fi
 
