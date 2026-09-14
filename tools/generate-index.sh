@@ -32,9 +32,22 @@ PAGE_INTRO="${PAGE_INTRO:-Archivos publicados de RadioLibre.}"
 
 # Directories to publish, relative to WEBROOT. THIS IS THE ALLOWLIST.
 # Anything not listed here is invisible to this script. Edit this list.
+#
+# "." means the top level of the webroot itself — content sitting directly in
+# /var/www/altred.xyz. Name subdirectories to publish those instead, or as
+# well.
 PUBLISH=(
-  audio
-  documentos
+  .
+)
+
+# Folders and files to keep OUT of the listing even though they sit inside a
+# published directory. This is what makes "reachable by a long URL, but not
+# advertised" work: publishing "." would otherwise list every folder at the top
+# level, including the ones whose whole point is not being discoverable.
+#
+# Names are matched at any depth. Add the folder name, not a path.
+PRIVATE=(
+  # privado-url-larga-x7f3
 )
 
 # For testing, PUBLISH_DIRS overrides the list above: a whitespace-separated
@@ -48,7 +61,17 @@ MAX_DEPTH="${MAX_DEPTH:-4}"
 
 # Never list these, at any depth. tree already hides dotfiles unless -a is
 # given; they are repeated here so the intent is explicit and survives edits.
-IGNORE="${IGNORE:-.*|*.bak|*.bak-*|*.backup|*~|*.swp|*.tmp|*.part|*.env|*.key|*.pem|*.crt|*.csr|*.conf|*.cfg|*.ini|*.sql|*.dump|*.log|*.sh|*.py|*.php|id_rsa*|authorized_keys|htpasswd|.htpasswd|node_modules|__pycache__|.git|index.html}"
+#
+# Grouped by why they are excluded:
+#   backups      — *.bak and friends. These are the ones that were sitting
+#                  publicly in the webroot; never publish them.
+#   server config — icecast.xml and anything config-shaped. An Icecast config
+#                  contains source and admin passwords in clear text, so it
+#                  must never be listed, and ideally never be in the webroot.
+#   secrets      — keys, certificates, environment files, dumps.
+#   site machinery — index.html and assets/, which are the site itself rather
+#                  than published content.
+IGNORE="${IGNORE:-.*|*.bak|*.bak-*|*.backup|*.old|*bkp*|*~|*.swp|*.tmp|*.part|icecast*|*.xml|*.xsl|*.conf|*.cfg|*.ini|*.env|*.key|*.pem|*.crt|*.csr|*.sql|*.dump|*.log|*.sh|*.py|*.php|id_rsa*|authorized_keys|htpasswd|node_modules|__pycache__|index.html|assets}"
 
 # ------------------------------------------------------------------- checks
 
@@ -77,9 +100,32 @@ trap 'rm -rf "$tmp"' EXIT
 manifest="$tmp/manifest"
 : > "$manifest"
 
+# Anything named PRIVATE is folded into the ignore list, so it is never walked
+# and never appears — the same mechanism that hides backups and configs.
+for p in ${PRIVATE+"${PRIVATE[@]}"}; do
+  [ -n "$p" ] && IGNORE="$IGNORE|$p"
+done
+
+# For testing, as with PUBLISH_DIRS.
+if [ -n "${PRIVATE_DIRS:-}" ]; then
+  read -r -a _priv <<< "$PRIVATE_DIRS"
+  for p in "${_priv[@]}"; do IGNORE="$IGNORE|$p"; done
+fi
+
+# The generated page lives in a directory under the webroot; listing that
+# directory in its own index is just noise, so exclude it automatically.
+out_rel="${out_dir#"$webroot_abs"/}"
+if [ "$out_rel" != "$out_dir" ] && [ -n "$out_rel" ]; then
+  IGNORE="$IGNORE|${out_rel%%/*}"
+fi
+
 published=0
 for rel in "${PUBLISH[@]}"; do
-  dir="$WEBROOT/$rel"
+  if [ "$rel" = "." ]; then
+    dir="$WEBROOT"
+  else
+    dir="$WEBROOT/$rel"
+  fi
 
   if [ ! -d "$dir" ]; then
     printf 'skip: %s (not a directory)\n' "$rel" >&2
@@ -87,9 +133,11 @@ for rel in "${PUBLISH[@]}"; do
   fi
 
   # Refuse anything that resolves outside the webroot, which is how a stray
-  # symlink would otherwise publish /etc.
+  # symlink would otherwise publish /etc. "." is the webroot itself, so it is
+  # allowed to match exactly; everything else must be strictly beneath it.
   real="$(cd "$dir" && pwd -P)"
   case "$real" in
+    "$webroot_abs") [ "$rel" = "." ] || { printf 'skip: %s (resolves to the webroot itself)\n' "$rel" >&2; continue; } ;;
     "$webroot_abs"/*) : ;;
     *) printf 'skip: %s (resolves outside the webroot: %s)\n' "$rel" "$real" >&2; continue ;;
   esac
@@ -209,14 +257,16 @@ with open(manifest, encoding="utf-8") as fh:
         # tree -J returns [ {the directory}, {"type":"report"} ]
         root = next((n for n in data if n.get("type") == "directory"), None)
         contents = root.get("contents", []) if root else []
-        body = render(contents, [rel])
+        # "." is the webroot itself: links must be /file, not /./file.
+        base = [] if rel == "." else [rel]
+        body = render(contents, base)
         # Built outside the f-string: an f-string expression cannot contain a
         # backslash, and python 3.8 (Ubuntu 20.04) enforces that strictly.
         empty = "<li class='empty'>vacío</li>"
-        rel_href = html.escape(href([rel]), quote=True)
-        rel_text = html.escape(rel)
+        rel_href = "" if rel == "." else html.escape(href([rel]), quote=True) + "/"
+        rel_text = html.escape("raíz del sitio" if rel == "." else rel + "/")
         sections.append(
-            f'<section><h2><a href="/{rel_href}/">{rel_text}/</a></h2>'
+            f'<section><h2><a href="/{rel_href}">{rel_text}</a></h2>'
             f'<ul class="tree">{body or empty}</ul></section>'
         )
 
