@@ -50,6 +50,19 @@ PRIVATE=(
   # privado-url-larga-x7f3
 )
 
+# Other sites to link to, as "URL|Label" pairs. These are listed as links, not
+# walked as directories.
+#
+# This is the right way to include another site that lives elsewhere on the
+# server. Do NOT add a CMS directory (Grav, WordPress, and similar) to PUBLISH
+# instead: their trees hold account files, security salts and database
+# credentials, and publishing a file listing of one exposes all of it. Link to
+# the running site; never index its source.
+SITES=(
+  # "https://adj.altred.xyz/|ADJ"
+  # "https://etc.altred.xyz/|etc"
+)
+
 # For testing, PUBLISH_DIRS overrides the list above: a whitespace-separated
 # string, since a bash array cannot be exported into the environment.
 if [ -n "${PUBLISH_DIRS:-}" ]; then
@@ -71,7 +84,7 @@ MAX_DEPTH="${MAX_DEPTH:-4}"
 #   secrets      — keys, certificates, environment files, dumps.
 #   site machinery — index.html and assets/, which are the site itself rather
 #                  than published content.
-IGNORE="${IGNORE:-.*|*.bak|*.bak-*|*.backup|*.old|*bkp*|*~|*.swp|*.tmp|*.part|icecast*|*.xml|*.xsl|*.conf|*.cfg|*.ini|*.env|*.key|*.pem|*.crt|*.csr|*.sql|*.dump|*.log|*.sh|*.py|*.php|id_rsa*|authorized_keys|htpasswd|node_modules|__pycache__|index.html|assets}"
+IGNORE="${IGNORE:-.*|*.bak|*.bak-*|*.backup|*.old|*bkp*|*~|*.swp|*.tmp|*.part|icecast*|*.xml|*.xsl|*.conf|*.cfg|*.ini|*.env|*.key|*.pem|*.crt|*.csr|*.sql|*.dump|*.log|*.sh|*.py|*.php|id_rsa*|authorized_keys|htpasswd|*.yaml|*.yml|*.twig|*.phar|vendor|cache|logs|tmp|accounts|node_modules|__pycache__|index.html|assets}"
 
 # ------------------------------------------------------------------- checks
 
@@ -170,23 +183,30 @@ PROXIED = (".mp3", ".ogg", ".aac", ".opus", ".m3u", ".pls")
 files = dirs = blocked = 0
 
 def walk(nodes, base):
+    """Return the lines this level would emit, so empty folders can be dropped
+    exactly as the HTML renderer drops them."""
     global files, dirs, blocked
+    lines = []
     for node in nodes:
         kind, name = node.get("type"), node.get("name", "")
         if kind not in ("directory", "file") or not name:
             continue
         path = "/".join(base + [name])
         if kind == "directory":
+            kids = walk(node.get("contents", []), base + [name])
+            if not kids:
+                continue
             dirs += 1
-            print(f"  dir   /{path}/")
-            walk(node.get("contents", []), base + [name])
+            lines.append(f"  dir   /{path}/")
+            lines.extend(kids)
         else:
             files += 1
             if name.lower().endswith(PROXIED):
                 blocked += 1
-                print(f"  BLOCK /{path}   (Icecast proxy swallows this extension)")
+                lines.append(f"  BLOCK /{path}   (Icecast proxy swallows this extension)")
             else:
-                print(f"  file  /{path}")
+                lines.append(f"  file  /{path}")
+    return lines
 
 with open(os.environ["MANIFEST"], encoding="utf-8") as fh:
     for line in fh:
@@ -197,8 +217,9 @@ with open(os.environ["MANIFEST"], encoding="utf-8") as fh:
         with open(path, encoding="utf-8", errors="replace") as jf:
             data = json.load(jf)
         root = next((n for n in data if n.get("type") == "directory"), None)
-        walk(root.get("contents", []) if root else [],
-             [] if rel == "." else [rel])
+        for line in walk(root.get("contents", []) if root else [],
+                         [] if rel == "." else [rel]):
+            print(line)
 
 print()
 print(f"  {dirs} folder(s), {files} file(s)"
@@ -212,6 +233,7 @@ fi
 
 mkdir -p "$out_dir"
 
+SITES_LIST="$(printf '%s\n' ${SITES+"${SITES[@]}"})" \
 MANIFEST="$manifest" PAGE_TITLE="$PAGE_TITLE" PAGE_INTRO="$PAGE_INTRO" \
 python3 - > "$OUTPUT" <<'PYTHON'
 import html, json, os, urllib.parse
@@ -259,9 +281,14 @@ def render(nodes, base, depth=0):
         link = html.escape(href(parts), quote=True)
 
         if kind == "directory":
-            counts["dirs"] += 1
             kids = render(node.get("contents", []), parts, depth + 1)
-            body = f'<ul>{kids}</ul>' if kids else '<ul><li class="empty">vacío</li></ul>'
+            # A folder whose entire contents were excluded is not published as
+            # an empty shell: that would still advertise that it exists, and
+            # its name alone can be telling.
+            if not kids:
+                continue
+            counts["dirs"] += 1
+            body = f'<ul>{kids}</ul>'
             out.append(
                 f'<li class="dir"><details{" open" if depth == 0 else ""}>'
                 f'<summary><span class="name">{safe_name}/</span></summary>'
@@ -314,6 +341,27 @@ with open(manifest, encoding="utf-8") as fh:
             f'<section><h2><a href="/{rel_href}">{rel_text}</a></h2>'
             f'<ul class="tree">{body or empty}</ul></section>'
         )
+
+# Curated links to other sites. Only http(s) URLs are emitted, so a stray
+# javascript: or data: entry cannot become a live link.
+site_items = []
+for raw in os.environ.get("SITES_LIST", "").splitlines():
+    raw = raw.strip()
+    if not raw:
+        continue
+    url, _, label = raw.partition("|")
+    url, label = url.strip(), (label.strip() or url.strip())
+    if not url.lower().startswith(("http://", "https://")):
+        continue
+    site_items.append(
+        f'<li class="file"><a href="{html.escape(url, quote=True)}">'
+        f'{html.escape(label)}</a></li>'
+    )
+if site_items:
+    sections.append(
+        '<section><h2>Sitios</h2><ul class="tree">'
+        + "".join(site_items) + "</ul></section>"
+    )
 
 generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 note = ""
