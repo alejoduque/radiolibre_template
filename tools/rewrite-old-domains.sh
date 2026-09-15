@@ -64,6 +64,13 @@ RULES=(
   # radiolibre.altred.xyz proxies *.mp3 to Icecast, so this resolves as soon as
   # a source connects to /live.mp3 (nothing is broadcasting as I write this).
   "$BASE_RE/radiolibre\.mp3	https://radiolibre.altred.xyz/live.mp3"
+  # /bogdec was the Bogota Declaration. No install has that page any more, but
+  # the text survives in the wiki tree as a Google cache snapshot taken on
+  # 2011-01-01 of projects.dorkbot.org/dorkbot-wiki/.../DeclaracionBogota/iEMS.
+  # The related images are separate, under dorkbotmde/bogota_declaration/.
+  # Every observed reference is the bare /bogdec with no sub-path, so a plain
+  # match is safe here; if sub-paths ever appear this rule would mangle them.
+  "$BASE_RE/bogdec	https://altred.xyz/mdelibre/dorkbotmde/dorkbotmde_wiki/DorkbotMdeWiki%20DeclaracionBogota%20iEMS%20-%20dorkbot-wiki.html"
 )
 
 DRY=0
