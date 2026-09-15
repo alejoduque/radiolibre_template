@@ -27,8 +27,20 @@ WEBROOT="${WEBROOT:-/var/www/altred.xyz}"
 # Where to write the page. Must be a directory that nginx already serves.
 OUTPUT="${OUTPUT:-$WEBROOT/archivo/index.html}"
 
-PAGE_TITLE="${PAGE_TITLE:-Archivo}"
-PAGE_INTRO="${PAGE_INTRO:-Archivos publicados de RadioLibre.}"
+# Empty means "omit entirely". With HYDRA_JS set the page is the landing page
+# rather than an archive listing, so the heading, the blurb and the "raiz del
+# sitio" section header are dropped by default — on a front page they are
+# chrome around content that speaks for itself. Set them explicitly to bring
+# them back.
+if [ -n "${HYDRA_JS:-}" ]; then
+  PAGE_TITLE="${PAGE_TITLE-}"
+  PAGE_INTRO="${PAGE_INTRO-}"
+  SHOW_ROOT_HEADING="${SHOW_ROOT_HEADING:-0}"
+else
+  PAGE_TITLE="${PAGE_TITLE:-Archivo}"
+  PAGE_INTRO="${PAGE_INTRO:-Archivos publicados de RadioLibre.}"
+  SHOW_ROOT_HEADING="${SHOW_ROOT_HEADING:-1}"
+fi
 
 # Directories to publish, relative to WEBROOT. THIS IS THE ALLOWLIST.
 # Anything not listed here is invisible to this script. Edit this list.
@@ -257,6 +269,7 @@ mkdir -p "$out_dir"
 SITES_LIST="$(printf '%s\n' ${SITES+"${SITES[@]}"})" \
 HYDRA_JS="$HYDRA_JS" \
 MANIFEST="$manifest" PAGE_TITLE="$PAGE_TITLE" PAGE_INTRO="$PAGE_INTRO" \
+SHOW_ROOT_HEADING="$SHOW_ROOT_HEADING" \
 python3 - > "$OUTPUT" <<'PYTHON'
 import html, json, os, urllib.parse
 from datetime import datetime, timezone
@@ -359,8 +372,12 @@ with open(manifest, encoding="utf-8") as fh:
         empty = "<li class='empty'>vacío</li>"
         rel_href = "" if rel == "." else html.escape(href([rel]), quote=True) + "/"
         rel_text = html.escape("raíz del sitio" if rel == "." else rel + "/")
+        show_heading = os.environ.get("SHOW_ROOT_HEADING", "1") != "0" or rel != "."
+        heading = (
+            f'<h2><a href="/{rel_href}">{rel_text}</a></h2>' if show_heading else ""
+        )
         sections.append(
-            f'<section><h2><a href="/{rel_href}">{rel_text}</a></h2>'
+            f'<section>{heading}'
             f'<ul class="tree">{body or empty}</ul></section>'
         )
 
@@ -401,19 +418,43 @@ if hydra_js:
     # Palette taken from the live TiempoGranular page: #616161 ground, white
     # and #d6d6d6 type, Verdana at 13px.
     hydra_css = """
-:root { --bg:#616161; --fg:#fff; --fg-dim:#d6d6d6; --line:#7a7a7a; }
-body { font-family: Verdana, Geneva, Tahoma, sans-serif; font-size:13px;
-  line-height:1.48em; background:var(--bg); color:var(--fg); }
-#hydra-bg { position:fixed; inset:0; width:100%; height:100%; z-index:0;
-  display:block; }
-.wrap { position:relative; z-index:1; background:rgba(40,40,40,.72);
-  padding:22px 26px; border-radius:4px;
-  backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
-h2 { border-bottom-color:var(--line); }
-a { border-bottom:1px solid var(--line); }
-a:hover { color:#111; background:var(--fg); }
-.meta, .intro, .generated { color:var(--fg-dim); }
+/* ZKM Serendipity, the same face the radiolibre page uses, referenced from the
+   same origin rather than copied — it is ZKM's font, not ours to redistribute. */
+@font-face {
+  font-family: 'ZKM Serendipity';
+  src: url('https://zkm.de/themes/custom/zkm/typeface/WiP_ZKMSerendipity/ZKMSerendipity-Medium.woff') format('woff');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+
+:root { --bg:#616161; --fg:#fff; --fg-dim:#d6d6d6; --line:rgba(255,255,255,.35); }
+
+body {
+  font-family: 'ZKM Serendipity', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 19px; line-height: 1.7; letter-spacing: .02em;
+  background: var(--bg); color: var(--fg);
+}
+
+#hydra-bg { position:fixed; inset:0; width:100%; height:100%; z-index:0; display:block; }
+
+/* No panel behind the text. Legibility over moving video comes from a shadow
+   instead, which keeps the sketch fully visible. */
+.wrap { position:relative; z-index:1; background:none; padding:34px 26px;
+  text-shadow: 0 1px 3px rgba(0,0,0,.85), 0 0 14px rgba(0,0,0,.55); }
+
+h2 { font-size: 1em; letter-spacing:.14em; border-bottom:1px solid var(--line); }
+
+/* Tree entries read as code: the markers align, the names do not wrap. */
+ul.tree, ul.tree ul { padding-left: 1.4em; }
+li { padding: 2px 0; }
+li.dir > details > summary::before,
+li.file::before { color: rgba(255,255,255,.55); }
+a { border-bottom:1px solid transparent; color: var(--fg); }
+a:hover { color:#111; background:var(--fg); text-shadow:none; border-bottom-color:var(--fg); }
+.meta { font-size:.72em; color:var(--fg-dim); opacity:.8; }
+.generated { color:var(--fg-dim); font-size:.75em; }
+
 @media (prefers-reduced-motion: reduce) { #hydra-bg { display:none; } }
+@media (max-width: 600px) { body { font-size:16px; } }
 """
     # The sketch is fixed here; nothing a visitor supplies is ever evaluated.
     hydra_body = f"""
@@ -503,8 +544,8 @@ footer {{ margin-top:40px; border-top:1px solid #333; padding-top:12px; }}
 <body>
 {hydra_body}
 <div class="wrap">
-<h1>{html.escape(title)}</h1>
-<p class="intro">{html.escape(intro)}</p>
+{f'<h1>{html.escape(title)}</h1>' if title else ''}
+{f'<p class="intro">{html.escape(intro)}</p>' if intro else ''}
 {note}
 {"".join(sections)}
 <footer>
