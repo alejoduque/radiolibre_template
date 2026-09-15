@@ -359,13 +359,21 @@ def emit(items, prefix=""):
             # the row plus its descendants are wrapped together so that hovering
             # the folder can light up its own branch (.row.dir:hover + .kids).
             kids = emit(it["kids"], prefix + ("    " if last else "\u2502   "))
+            # <details> rather than hand-rolled show/hide: clicking the row
+            # toggles it, Enter and Space work on it, and screen readers
+            # announce the expanded state — all without a line of javascript.
+            # The folder name is plain text because a link inside <summary>
+            # would navigate instead of toggling; a separate arrow opens the
+            # directory itself.
             rows.append(
-                f'<div class="branch">'
-                f'<div class="row dir"><span class="tw">{pre}</span>'
-                f'<a class="name" href="/{html.escape(it["url"], quote=True)}/">'
-                f'{html.escape(it["name"])}/</a></div>'
+                f'<details class="branch">'
+                f'<summary class="row dir"><span class="tw">{pre}</span>'
+                f'<span class="name">{html.escape(it["name"])}/</span>'
+                f'<a class="open" href="/{html.escape(it["url"], quote=True)}/"'
+                f' title="abrir carpeta">\u2197</a>'
+                f'</summary>'
                 f'<div class="kids">{kids}</div>'
-                f'</div>'
+                f'</details>'
             )
         elif it["blocked"]:
             counts["blocked"] += 1
@@ -492,27 +500,23 @@ h2 { font-size: 1em; letter-spacing:.14em; border-bottom:1px solid var(--line); 
   white-space: pre; color: rgba(255,255,255,.45); font-size: .92em; }
 .branch, .kids { margin:0; padding:0; }
 
-/* Folders read as folders and are clickable. */
-.row.dir a.name { color: var(--fg); font-weight:500; letter-spacing:.06em;
-  border-bottom:1px solid transparent; }
+/* Click to toggle. Nothing moves under the pointer, and the details element
+   brings keyboard operation and expanded-state announcement for free.
+   (Spelled without angle brackets on purpose: a literal tag name in a comment
+   makes every "count the open tags" check in the output read one too many.) */
+summary.row { cursor:pointer; list-style:none; }
+summary.row::-webkit-details-marker { display:none; }
+summary.row::marker { content:''; }
+.row.dir .name { font-weight:500; }
+summary.row:hover .name { border-bottom:1px solid var(--fg); }
 
-/* Folders collapsed until pointed at.
-   The rule hangs off .branch rather than the folder row, deliberately: with
-   `.row.dir:hover + .kids` the children appear below the pointer, and the
-   moment you move down into them you have left the row that was keeping them
-   open, so the branch shuts under your own cursor. Hovering the whole branch
-   survives that.
-   :focus-within is there so the tree can be opened from the keyboard too —
-   hover alone would make the hierarchy unreachable without a mouse. */
-.kids { display:none; }
-.branch:hover > .kids,
-.branch:focus-within > .kids { display:block; }
+/* A closed folder should look like it holds something. */
+.row.dir .name::after { content:' \u2026'; color:rgba(255,255,255,.5); }
+details[open] > .row.dir .name::after { content:''; }
 
-/* A collapsed folder should look like it has something inside it. */
-.row.dir a.name::after { content:' \u2026'; color:rgba(255,255,255,.5); }
-.branch:hover > .row.dir a.name::after,
-.branch:focus-within > .row.dir a.name::after { content:''; }
-.row.dir:hover a.name { border-bottom-color: var(--fg); }
+/* Small arrow to open the directory itself, rather than just expand it. */
+a.open { margin-left:.5em; font-size:.8em; opacity:.45; text-decoration:none; }
+a.open:hover { opacity:1; }
 a { border-bottom:1px solid transparent; color: var(--fg); }
 a:hover { color:#111; background:var(--fg); text-shadow:none; border-bottom-color:var(--fg); }
 .meta { font-size:.72em; color:var(--fg-dim); opacity:.8; }
