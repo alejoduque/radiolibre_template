@@ -81,6 +81,18 @@ fi
 # How deep to descend.
 MAX_DEPTH="${MAX_DEPTH:-4}"
 
+# Optional hydra background, in the TiempoGranular palette.
+#
+# Set HYDRA_JS to the URL of a LOCALLY VENDORED hydra-synth build, e.g.
+#   HYDRA_JS=/assets/js/hydra-synth.js generate-index.sh
+# Leave it empty and the page renders exactly as before.
+#
+# Use the hydra-synth LIBRARY, never the hydra editor app: the editor's whole
+# purpose is evaluating code typed by whoever is looking at it, which is not
+# something to put on a public landing page. The sketch below is fixed in the
+# page and no visitor input is ever evaluated.
+HYDRA_JS="${HYDRA_JS:-}"
+
 # Never list these, at any depth. tree already hides dotfiles unless -a is
 # given; they are repeated here so the intent is explicit and survives edits.
 #
@@ -243,6 +255,7 @@ fi
 mkdir -p "$out_dir"
 
 SITES_LIST="$(printf '%s\n' ${SITES+"${SITES[@]}"})" \
+HYDRA_JS="$HYDRA_JS" \
 MANIFEST="$manifest" PAGE_TITLE="$PAGE_TITLE" PAGE_INTRO="$PAGE_INTRO" \
 python3 - > "$OUTPUT" <<'PYTHON'
 import html, json, os, urllib.parse
@@ -372,6 +385,78 @@ if site_items:
         + "".join(site_items) + "</ul></section>"
     )
 
+# --- optional hydra background, TiempoGranular palette -----------------------
+hydra_js = os.environ.get("HYDRA_JS", "").strip()
+
+# Only a same-origin path is accepted. Pointing this at a CDN would hand every
+# visitor to a third party and make the page break when that CDN moves; vendor
+# the file instead.
+if hydra_js and not hydra_js.startswith("/"):
+    print(f"<!-- HYDRA_JS ignored: must be a local path, got {html.escape(hydra_js)} -->")
+    hydra_js = ""
+
+hydra_css = ""
+hydra_body = ""
+if hydra_js:
+    # Palette taken from the live TiempoGranular page: #616161 ground, white
+    # and #d6d6d6 type, Verdana at 13px.
+    hydra_css = """
+:root { --bg:#616161; --fg:#fff; --fg-dim:#d6d6d6; --line:#7a7a7a; }
+body { font-family: Verdana, Geneva, Tahoma, sans-serif; font-size:13px;
+  line-height:1.48em; background:var(--bg); color:var(--fg); }
+#hydra-bg { position:fixed; inset:0; width:100%; height:100%; z-index:0;
+  display:block; }
+.wrap { position:relative; z-index:1; background:rgba(40,40,40,.72);
+  padding:22px 26px; border-radius:4px;
+  backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+h2 { border-bottom-color:var(--line); }
+a { border-bottom:1px solid var(--line); }
+a:hover { color:#111; background:var(--fg); }
+.meta, .intro, .generated { color:var(--fg-dim); }
+@media (prefers-reduced-motion: reduce) { #hydra-bg { display:none; } }
+"""
+    # The sketch is fixed here; nothing a visitor supplies is ever evaluated.
+    hydra_body = f"""
+<canvas id="hydra-bg"></canvas>
+<script src="{html.escape(hydra_js, quote=True)}"></script>
+<script>
+(function () {{
+  var c = document.getElementById('hydra-bg');
+  if (!c || typeof HydraSynth === 'undefined' && typeof Hydra === 'undefined') return;
+  // A full-screen GPU shader is a real cost on a phone and a real problem for
+  // anyone sensitive to motion. Honour the OS setting and skip it entirely.
+  var reduce = window.matchMedia
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) {{ c.style.display = 'none'; return; }}
+  try {{
+    var H = (typeof Hydra !== 'undefined') ? Hydra : HydraSynth;
+    function size() {{ c.width = window.innerWidth; c.height = window.innerHeight; }}
+    size();
+    window.addEventListener('resize', size);
+    var h = new H({{ canvas: c, detectAudio: false, enableStreamCapture: false }});
+    // Granular drift: slow bands folded through noise, kept low-contrast so the
+    // text above stays legible.
+    osc(6, 0.03, 0.9)
+      .modulate(noise(1.6, 0.06), 0.4)
+      .luma(0.42, 0.06)
+      .color(0.42, 0.42, 0.42)
+      .modulateScale(osc(0.6, 0.02), 0.08)
+      .blend(o0, 0.94)
+      .out(o0);
+    // Stop rendering while the tab is hidden rather than burning the GPU.
+    document.addEventListener('visibilitychange', function () {{
+      if (h && h.synth) h.synth.hush ? null : null;
+      c.style.visibility = document.hidden ? 'hidden' : 'visible';
+    }});
+  }} catch (e) {{
+    // WebGL unavailable, or the vendored file failed to load. The page is
+    // fully readable without it.
+    c.style.display = 'none';
+  }}
+}})();
+</script>
+"""
+
 generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 note = ""
 if counts["blocked"]:
@@ -412,9 +497,11 @@ li.file::before {{ content:''; display:inline-block; width:1.2em; }}
 .empty {{ color:#666; font-style:italic; }}
 .blocked .name {{ color:#888; text-decoration:line-through; }}
 footer {{ margin-top:40px; border-top:1px solid #333; padding-top:12px; }}
+{hydra_css}
 </style>
 </head>
 <body>
+{hydra_body}
 <div class="wrap">
 <h1>{html.escape(title)}</h1>
 <p class="intro">{html.escape(intro)}</p>
