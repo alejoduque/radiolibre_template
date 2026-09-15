@@ -38,7 +38,9 @@ PUBLISHABLE="html htm css js gif png jpg jpeg JPG JPEG svg ico webp pdf txt md m
 # cruft. The leading-dot rule already covers most, but these are spelled out
 # because the cost of missing one is publishing someone's mail.
 args=(-a --prune-empty-dirs)
-for x in ".*" "__MACOSX" "mail" "mbox" "dead.letter" "Desktop" ".ssh" ".ssh2" "*.php" "*.dump" "*.sql" "*.sqlite*" "*.db" "*.bak" "*.log" "*.conf" "*.ini" "*.env" "*.key" "*.pem" "*.yaml" "*.yml"; do
+# log.txt is spelled out because *.log does not match it: hotglue writes
+# content/log.txt recording who edited each page and from which IP.
+for x in ".*" "__MACOSX" "mail" "mbox" "dead.letter" "Desktop" ".ssh" ".ssh2" "*.php" "*.dump" "*.sql" "*.sqlite*" "*.db" "*.bak" "*.log" "log.txt" "*.conf" "*.ini" "*.env" "*.key" "*.pem" "*.yaml" "*.yml"; do
   args+=(--exclude="$x")
 done
 
