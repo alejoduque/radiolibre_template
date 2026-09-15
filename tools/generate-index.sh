@@ -471,7 +471,11 @@ body {
 
 /* No panel behind the text. Legibility over moving video comes from a shadow
    instead, which keeps the sketch fully visible. */
-.wrap { position:relative; z-index:1; background:none; padding:34px 26px;
+/* Left-aligned rather than centred: a tree reads from its left edge, and a
+   centred block puts the hierarchy's spine in a different place on every row
+   as the widest line changes. max-width keeps the measure readable. */
+.wrap { position:relative; z-index:1; background:none; margin:0;
+  max-width:820px; padding:30px 28px;
   text-shadow: 0 1px 3px rgba(0,0,0,.85), 0 0 14px rgba(0,0,0,.55); }
 
 h2 { font-size: 1em; letter-spacing:.14em; border-bottom:1px solid var(--line); }
@@ -512,10 +516,15 @@ a:hover { color:#111; background:var(--fg); text-shadow:none; border-bottom-colo
     var h = new H({{ canvas: c, detectAudio: false, enableStreamCapture: false }});
     // Granular drift: slow bands folded through noise, kept low-contrast so the
     // text above stays legible.
+    // Monochrome: saturate(0) strips colour outright rather than relying on
+    // equal RGB values, so the osc's colour offset cannot reintroduce a tint.
+    // Contrast is lifted a little and brightness pulled down, which keeps the
+    // whites off the text without flattening the greys.
     osc(6, 0.03, 0.9)
       .modulate(noise(1.6, 0.06), 0.4)
-      .luma(0.42, 0.06)
-      .color(0.42, 0.42, 0.42)
+      .saturate(0)
+      .contrast(1.45)
+      .brightness(-0.1)
       .modulateScale(osc(0.6, 0.02), 0.08)
       .blend(o0, 0.94)
       .out(o0);
