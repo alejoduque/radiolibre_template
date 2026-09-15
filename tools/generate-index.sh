@@ -59,6 +59,15 @@ PRIVATE=(
 # credentials, and publishing a file listing of one exposes all of it. Link to
 # the running site; never index its source.
 SITES=(
+  "https://altred.xyz/mdelibre/|mdelibre"
+  "https://altred.xyz/mdelibre/cooperaciones/|co.operaciones"
+  "https://altred.xyz/mdelibre/repo/|pasado/reciente"
+  "https://altred.xyz/mdelibre/1999/|1999"
+  "https://altred.xyz/mdelibre/dorkbotmde/trueque/|trueque"
+  "https://altred.xyz/mdelibre/dorkbotmde/rebot/|rebot"
+  "https://altred.xyz/mdelibre/dorkbotmde/oyeristas/|oyeristas"
+  "https://altred.xyz/mdelibre/dorkbotmde/k.0_lab/|k.0_lab"
+  "https://altred.xyz/mdelibre/dorkbotmde/ddr/|ddr"
   # "https://adj.altred.xyz/|ADJ"
   # "https://etc.altred.xyz/|etc"
 )
