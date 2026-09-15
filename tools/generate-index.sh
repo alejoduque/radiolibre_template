@@ -118,7 +118,7 @@ HYDRA_JS="${HYDRA_JS:-}"
 #   secrets      — keys, certificates, environment files, dumps.
 #   site machinery — index.html and assets/, which are the site itself rather
 #                  than published content.
-IGNORE="${IGNORE:-.*|*.bak|*.bak-*|*.backup|*.old|*bkp*|*~|*.swp|*.tmp|*.part|icecast*|*.xml|*.xsl|*.conf|*.cfg|*.ini|*.env|*.key|*.pem|*.crt|*.csr|*.sql|*.dump|*.log|*.sh|*.py|*.php|id_rsa*|authorized_keys|htpasswd|*.yaml|*.yml|*.twig|*.phar|vendor|cache|logs|tmp|accounts|node_modules|__pycache__|index.html|assets}"
+IGNORE="${IGNORE:-.*|*.bak|*.bak-*|*.backup|*.old|*bkp*|*~|*.swp|*.tmp|*.part|icecast*|*.xml|*.xsl|*.conf|*.cfg|*.ini|*.env|*.key|*.pem|*.crt|*.csr|*.sql|*.dump|*.log|*.sh|*.py|*.php|id_rsa*|authorized_keys|htpasswd|*.yaml|*.yml|*.twig|*.phar|vendor|cache|logs|tmp|accounts|node_modules|__pycache__|index.html|assets|Portafolio_ParlamentoDeLoVivo.html}"
 
 # ------------------------------------------------------------------- checks
 
@@ -322,7 +322,8 @@ def build(nodes, base):
             if not kids:
                 continue
             counts["dirs"] += 1
-            items.append({"kind": "dir", "name": name, "kids": kids})
+            items.append({"kind": "dir", "name": name, "kids": kids,
+                          "url": href(parts)})
         else:
             counts["files"] += 1
             size = node.get("size")
@@ -355,13 +356,18 @@ def emit(items, prefix=""):
         pre = html.escape(prefix + conn)
 
         if it["kind"] == "dir":
+            # Folders are links now, so a directory can actually be opened; and
+            # the row plus its descendants are wrapped together so that hovering
+            # the folder can light up its own branch (.row.dir:hover + .kids).
+            kids = emit(it["kids"], prefix + ("    " if last else "\u2502   "))
             rows.append(
+                f'<div class="branch">'
                 f'<div class="row dir"><span class="tw">{pre}</span>'
-                f'<span class="name">{html.escape(it["name"])}/</span></div>'
+                f'<a class="name" href="/{html.escape(it["url"], quote=True)}/">'
+                f'{html.escape(it["name"])}/</a></div>'
+                f'<div class="kids">{kids}</div>'
+                f'</div>'
             )
-            # A continued vertical guide under anything that still has siblings.
-            rows.extend(emit(it["kids"],
-                             prefix + ("    " if last else "\u2502   ")))
         elif it["blocked"]:
             counts["blocked"] += 1
             rows.append(
@@ -431,8 +437,7 @@ if site_items:
             f'<a href="{html.escape(url, quote=True)}">{html.escape(label)}</a></div>'
         )
     sections.append(
-        '<section><h2>Sitios</h2><div class="tree">'
-        + "".join(rows) + "</div></section>"
+        '<section><div class="tree">' + "".join(rows) + "</div></section>"
     )
 
 # --- optional hydra background, TiempoGranular palette -----------------------
@@ -486,7 +491,21 @@ h2 { font-size: 1em; letter-spacing:.14em; border-bottom:1px solid var(--line); 
 .row { line-height: 1.12; white-space: nowrap; overflow-x: auto; padding: 0; }
 .tw { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   white-space: pre; color: rgba(255,255,255,.45); font-size: .92em; }
-.row.dir .name { color: var(--fg); }
+.branch, .kids { margin:0; padding:0; }
+
+/* Folders read as folders and are clickable. */
+.row.dir a.name { color: var(--fg); font-weight:500; letter-spacing:.06em;
+  border-bottom:1px solid transparent; }
+
+/* All folders stay open, as before. Hovering one lifts its own branch out of
+   the surrounding dimness so its structure reads at a glance, instead of
+   collapsing and expanding things under the pointer. */
+.kids { transition: opacity .18s ease; }
+.tree:hover .kids { opacity:.45; }
+.row.dir:hover + .kids,
+.kids:hover { opacity:1; }
+.row.dir:hover a.name { border-bottom-color: var(--fg); }
+.row.dir:hover + .kids .tw { color: rgba(255,255,255,.85); }
 a { border-bottom:1px solid transparent; color: var(--fg); }
 a:hover { color:#111; background:var(--fg); text-shadow:none; border-bottom-color:var(--fg); }
 .meta { font-size:.72em; color:var(--fg-dim); opacity:.8; }
@@ -520,13 +539,15 @@ a:hover { color:#111; background:var(--fg); text-shadow:none; border-bottom-colo
     // equal RGB values, so the osc's colour offset cannot reintroduce a tint.
     // Contrast is lifted a little and brightness pulled down, which keeps the
     // whites off the text without flattening the greys.
-    osc(6, 0.03, 0.9)
-      .modulate(noise(1.6, 0.06), 0.4)
+    osc(7, 0.02, 0.9)
+      .modulate(noise(2.4, 0.08).pixelate(20, 12), 0.6)
+      .modulatePixelate(noise(1.1, 0.03).thresh(0.52), 56, 6)
+      .modulateScrollX(osc(0.28, 0.01).thresh(0.62), 0.05, 0)
       .saturate(0)
-      .contrast(1.45)
-      .brightness(-0.1)
-      .modulateScale(osc(0.6, 0.02), 0.08)
-      .blend(o0, 0.94)
+      .posterize(5, 0.7)
+      .contrast(1.9)
+      .brightness(-0.18)
+      .blend(o0, 0.82)
       .out(o0);
     // Stop rendering while the tab is hidden rather than burning the GPU.
     document.addEventListener('visibilitychange', function () {{
