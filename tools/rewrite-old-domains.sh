@@ -9,6 +9,11 @@
 # and each move left absolute URLs baked into the page data. hotglue stores
 # objects as plain text, so they can be rewritten in place.
 #
+# Every host pattern ends with (:[0-9]+)? so an explicit port is consumed along
+# with the hostname. Without it, http://<host>:8000/radiolibre.mp3 rewrites to
+# ".../mdelibre:8000/radiolibre.mp3" — the port stranded mid-URL. That is the
+# same shape of mistake that produced cc.88.99.123.96, made a second time.
+#
 # What actually protects subdomains is the "https?://" anchor on every pattern:
 # in "http://cooperaciones.mdelibre.co" the text after "://" is "cooperaciones.",
 # so the bare mdelibre.co rule cannot match it, and likewise cc.88.99.123.96 is
@@ -44,10 +49,10 @@ ROOTS=(/var/www/html /var/www/dorkbotmde /var/www/hotglues)
 # those links at /cooperaciones would fabricate a page that never existed here.
 # A dead link is honest; a wrong one is not.
 RULES=(
-  "https?://cooperaciones\.mdelibre\.co	$BASE/cooperaciones"
-  "https?://antifa\.allowed\.org	$BASE"
-  "https?://88\.99\.123\.96	$BASE"
-  "https?://mdelibre\.co	$BASE"
+  "https?://cooperaciones\.mdelibre\.co(:[0-9]+)?	$BASE/cooperaciones"
+  "https?://antifa\.allowed\.org(:[0-9]+)?	$BASE"
+  "https?://88\.99\.123\.96(:[0-9]+)?	$BASE"
+  "https?://mdelibre\.co(:[0-9]+)?	$BASE"
   # Stale PATH prefix, not a host. On an older server the installs lived under
   # /old/html/, so links read http://<host>/old/html/repo/. The host rules above
   # fix the hostname but leave that segment, producing /mdelibre/old/html/repo/
