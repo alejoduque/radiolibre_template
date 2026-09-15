@@ -59,6 +59,11 @@ RULES=(
   # which 404s while /mdelibre/repo/ serves fine. This runs last, after the
   # hostnames have been normalised onto $BASE.
   "$BASE_RE/old/html	$BASE"
+  # The old Icecast stream. Once the host rules have normalised
+  # http://<host>:8000/radiolibre.mp3 onto $BASE, repoint it at the live mount.
+  # radiolibre.altred.xyz proxies *.mp3 to Icecast, so this resolves as soon as
+  # a source connects to /live.mp3 (nothing is broadcasting as I write this).
+  "$BASE_RE/radiolibre\.mp3	https://radiolibre.altred.xyz/live.mp3"
 )
 
 DRY=0
@@ -71,9 +76,27 @@ done
 # grep exits 1 when it matches nothing. Under `set -e` with pipefail that
 # aborts the script precisely when a rewrite has fully succeeded and there is
 # nothing left to find, so the count is guarded.
-count_refs() { { grep -rhoiE "$1" "${ROOTS[@]}" 2>/dev/null || true; } | wc -l | tr -d ' '; }
+# Files that may contain URLs worth rewriting: hotglue's object files (any
+# extension, under content/) plus the static HTML archives that sit beside them.
+# The k.0_lab and dorkbotmde_wiki trees are plain mirrored HTML with absolute
+# links to a long-dead IP, and they are not under any content/ directory — the
+# original version of this script silently skipped every one of them.
+# "$@" is forwarded so callers can pass -print0. Without it, find_files -print0
+# silently returned newline-separated paths and every NUL-expecting consumer
+# (xargs -0, tar --null -T -) read the whole list as one filename.
+find_files() {
+  find "${ROOTS[@]}" -type f \
+    \( -path '*/content/*' -o -iname '*.html' -o -iname '*.htm' -o -iname '*.css' -o -iname '*.js' \) \
+    "$@" 2>/dev/null
+}
 
-count_files() { find "${ROOTS[@]}" -path '*/content/*' -type f 2>/dev/null | wc -l | tr -d ' '; }
+# Counted over the same set that gets rewritten, so the reported numbers cannot
+# promise fixes to files the rewrite never visits.
+count_refs() {
+  { find_files -print0 | xargs -0 grep -ohiE "$1" 2>/dev/null || true; } | wc -l | tr -d ' '
+}
+
+count_files() { find_files | wc -l | tr -d ' '; }
 NFILES="$(count_files)"
 [ "$NFILES" -gt 0 ] || { echo "error: no content files found under ${ROOTS[*]}" >&2; exit 1; }
 echo "content files: $NFILES"
@@ -91,13 +114,21 @@ if [ "$DRY" -eq 1 ]; then
     printf "  %-44s -> %-46s %s refs\n" "$pat" "$rep" "$n"
   done
   echo
-  echo "  $total reference(s) would be rewritten"
+  echo "  $total reference(s) match the content as it stands"
+  echo
+  echo "  Counts are measured against the CURRENT text, so a rule that matches"
+  echo "  what an earlier rule produces reports 0 here and still applies. The"
+  echo "  /old/html and radiolibre.mp3 rules are both of that kind: they only"
+  echo "  see their input once the hostname rules above have run."
+  echo
   echo "  run without --dry-run to apply (a backup is taken first)"
   exit 0
 fi
 
 backup="/root/hotglue-content-$(date +%F-%H%M%S).tar.gz"
-find "${ROOTS[@]}" -type d -name content -print0 2>/dev/null | tar czf "$backup" --null -T -
+# Back up precisely the files this run can modify — not just content/, now that
+# static HTML outside it is rewritten too.
+find_files -print0 | tar czf "$backup" --null -T -
 echo "backup: $backup ($(du -h "$backup" | cut -f1))"
 echo
 
@@ -109,8 +140,7 @@ for rule in "${RULES[@]}"; do
     # perl rather than sed: sed -i takes a mandatory suffix on BSD and none on
     # GNU, so the same line cannot run in both places. perl -pi is identical
     # everywhere, which also makes this testable off the server.
-    find "${ROOTS[@]}" -path '*/content/*' -type f -print0 2>/dev/null \
-      | xargs -0 perl -pi -e "s|$pat|$rep|gi"
+    find_files -print0 | xargs -0 perl -pi -e "s|$pat|$rep|gi"
   fi
   after=$(count_refs "$pat")
   printf "  %-44s %s -> %s remaining\n" "$pat" "$before" "$after"
