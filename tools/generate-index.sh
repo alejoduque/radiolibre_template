@@ -71,7 +71,6 @@ PRIVATE=(
 # credentials, and publishing a file listing of one exposes all of it. Link to
 # the running site; never index its source.
 SITES=(
-  "https://altred.xyz/Portafolio_ParlamentoDeLoVivo.html|Parlamento de lo Vivo"
   "https://altred.xyz/mdelibre/|mdelibre"
   "https://altred.xyz/mdelibre/cooperaciones/|co.operaciones"
   "https://altred.xyz/mdelibre/repo/|pasado/reciente"
@@ -497,15 +496,23 @@ h2 { font-size: 1em; letter-spacing:.14em; border-bottom:1px solid var(--line); 
 .row.dir a.name { color: var(--fg); font-weight:500; letter-spacing:.06em;
   border-bottom:1px solid transparent; }
 
-/* All folders stay open, as before. Hovering one lifts its own branch out of
-   the surrounding dimness so its structure reads at a glance, instead of
-   collapsing and expanding things under the pointer. */
-.kids { transition: opacity .18s ease; }
-.tree:hover .kids { opacity:.45; }
-.row.dir:hover + .kids,
-.kids:hover { opacity:1; }
+/* Folders collapsed until pointed at.
+   The rule hangs off .branch rather than the folder row, deliberately: with
+   `.row.dir:hover + .kids` the children appear below the pointer, and the
+   moment you move down into them you have left the row that was keeping them
+   open, so the branch shuts under your own cursor. Hovering the whole branch
+   survives that.
+   :focus-within is there so the tree can be opened from the keyboard too —
+   hover alone would make the hierarchy unreachable without a mouse. */
+.kids { display:none; }
+.branch:hover > .kids,
+.branch:focus-within > .kids { display:block; }
+
+/* A collapsed folder should look like it has something inside it. */
+.row.dir a.name::after { content:' \u2026'; color:rgba(255,255,255,.5); }
+.branch:hover > .row.dir a.name::after,
+.branch:focus-within > .row.dir a.name::after { content:''; }
 .row.dir:hover a.name { border-bottom-color: var(--fg); }
-.row.dir:hover + .kids .tw { color: rgba(255,255,255,.85); }
 a { border-bottom:1px solid transparent; color: var(--fg); }
 a:hover { color:#111; background:var(--fg); text-shadow:none; border-bottom-color:var(--fg); }
 .meta { font-size:.72em; color:var(--fg-dim); opacity:.8; }
@@ -617,6 +624,7 @@ footer {{ margin-top:40px; border-top:1px solid #333; padding-top:12px; }}
 <p class="generated">{counts["dirs"]} carpetas, {counts["files"]} archivos,
 {human(counts["bytes"])} &middot; generado {generated}</p>
 <p class="generated"><a href="https://radiolibre.altred.xyz/">&larr; radiolibre</a></p>
+<p class="generated"><a href="/Portafolio_ParlamentoDeLoVivo.html">Parlamento de lo Vivo</a></p>
 </footer>
 </div>
 </body>
