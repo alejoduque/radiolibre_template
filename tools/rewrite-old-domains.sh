@@ -29,6 +29,11 @@ set -euo pipefail
 
 BASE="${BASE:-https://altred.xyz/mdelibre}"
 
+# Dots escaped so $BASE can appear inside a pattern. The counts use grep -E
+# and the substitution uses perl, so the pattern must be valid in both — which
+# rules out perl-only \Q...\E quoting.
+BASE_RE="${BASE//./\\.}"
+
 ROOTS=(/var/www/html /var/www/dorkbotmde /var/www/hotglues)
 
 # "regex<TAB>replacement", most specific first. Extended regex, | delimiter.
@@ -43,6 +48,12 @@ RULES=(
   "https?://antifa\.allowed\.org	$BASE"
   "https?://88\.99\.123\.96	$BASE"
   "https?://mdelibre\.co	$BASE"
+  # Stale PATH prefix, not a host. On an older server the installs lived under
+  # /old/html/, so links read http://<host>/old/html/repo/. The host rules above
+  # fix the hostname but leave that segment, producing /mdelibre/old/html/repo/
+  # which 404s while /mdelibre/repo/ serves fine. This runs last, after the
+  # hostnames have been normalised onto $BASE.
+  "$BASE_RE/old/html	$BASE"
 )
 
 DRY=0
