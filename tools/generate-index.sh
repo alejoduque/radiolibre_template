@@ -71,6 +71,7 @@ PRIVATE=(
 # credentials, and publishing a file listing of one exposes all of it. Link to
 # the running site; never index its source.
 SITES=(
+  "https://altred.xyz/Portafolio_ParlamentoDeLoVivo.html|Parlamento de lo Vivo"
   "https://altred.xyz/mdelibre/|mdelibre"
   "https://altred.xyz/mdelibre/cooperaciones/|co.operaciones"
   "https://altred.xyz/mdelibre/repo/|pasado/reciente"
@@ -297,60 +298,88 @@ PROXIED = (".mp3", ".ogg", ".aac", ".opus", ".m3u", ".pls")
 
 counts = {"dirs": 0, "files": 0, "bytes": 0, "blocked": 0}
 
-def render(nodes, base, depth=0):
-    out = []
+def build(nodes, base):
+    """Turn tree's JSON into a nested list of items, dropping what is hidden.
+
+    Two passes are needed rather than one: a directory whose entire contents
+    were excluded is not published, and that can only be known after its
+    children have been built. The ASCII connectors then depend on which child
+    is genuinely LAST among the survivors, not last in the raw listing.
+    """
+    items = []
     for node in nodes:
         kind = node.get("type")
         name = node.get("name", "")
-        # Only real files and directories are published. tree reports a
-        # symlink as type "link"; dropping those means a link pointing at /etc
-        # or at someone's home directory can never be published by accident.
+        # Only real files and directories. tree reports a symlink as type
+        # "link"; dropping those means a link pointing at /etc or at someone's
+        # home directory can never be published by accident.
         if kind not in ("directory", "file") or not name:
             continue
 
         parts = base + [name]
-        # Every filename reaching HTML is escaped; every one reaching an href
-        # is percent-encoded. Names are attacker-influenced if anyone can
-        # upload.
-        safe_name = html.escape(name)
-        link = html.escape(href(parts), quote=True)
-
         if kind == "directory":
-            kids = render(node.get("contents", []), parts, depth + 1)
-            # A folder whose entire contents were excluded is not published as
-            # an empty shell: that would still advertise that it exists, and
-            # its name alone can be telling.
+            kids = build(node.get("contents", []), parts)
             if not kids:
                 continue
             counts["dirs"] += 1
-            body = f'<ul>{kids}</ul>'
-            out.append(
-                f'<li class="dir"><details{" open" if depth == 0 else ""}>'
-                f'<summary><span class="name">{safe_name}/</span></summary>'
-                f'{body}</details></li>'
-            )
+            items.append({"kind": "dir", "name": name, "kids": kids})
         else:
             counts["files"] += 1
             size = node.get("size")
             if isinstance(size, int):
                 counts["bytes"] += size
-            meta = " ".join(
-                x for x in (human(size), html.escape(str(node.get("time", "")))) if x
+            items.append({
+                "kind": "file",
+                "name": name,
+                "url": href(parts),
+                "meta": " ".join(x for x in (
+                    human(size), str(node.get("time", "")).strip()) if x),
+                "blocked": name.lower().endswith(PROXIED),
+            })
+    return items
+
+
+def emit(items, prefix=""):
+    """Render items as tree(1)-style rows.
+
+    The connector column is a monospace span while the names are not: the
+    prefixes are all box-drawing characters and spaces four cells per level, so
+    they line up with each other regardless of how wide the names beside them
+    are. Setting the whole row monospace would have meant giving up the ZKM
+    face on the names.
+    """
+    rows = []
+    for i, it in enumerate(items):
+        last = i == len(items) - 1
+        conn = "\u2514\u2500\u2500 " if last else "\u251c\u2500\u2500 "
+        pre = html.escape(prefix + conn)
+
+        if it["kind"] == "dir":
+            rows.append(
+                f'<div class="row dir"><span class="tw">{pre}</span>'
+                f'<span class="name">{html.escape(it["name"])}/</span></div>'
             )
-            if name.lower().endswith(PROXIED):
-                counts["blocked"] += 1
-                out.append(
-                    f'<li class="file blocked"><span class="name">{safe_name}</span>'
-                    f'<span class="meta">{meta}</span>'
-                    f'<span class="warn" title="nginx envía esta extensión a Icecast; '
-                    f'el archivo no se puede descargar">no servible</span></li>'
-                )
-            else:
-                out.append(
-                    f'<li class="file"><a href="/{link}">{safe_name}</a>'
-                    f'<span class="meta">{meta}</span></li>'
-                )
-    return "".join(out)
+            # A continued vertical guide under anything that still has siblings.
+            rows.extend(emit(it["kids"],
+                             prefix + ("    " if last else "\u2502   ")))
+        elif it["blocked"]:
+            counts["blocked"] += 1
+            rows.append(
+                f'<div class="row file blocked"><span class="tw">{pre}</span>'
+                f'<span class="name">{html.escape(it["name"])}</span>'
+                f'<span class="meta">{html.escape(it["meta"])}</span>'
+                f'<span class="warn" title="nginx env\u00eda esta extensi\u00f3n a '
+                f'Icecast; el archivo no se puede descargar">no servible</span></div>'
+            )
+        else:
+            rows.append(
+                f'<div class="row file"><span class="tw">{pre}</span>'
+                f'<a href="/{html.escape(it["url"], quote=True)}">'
+                f'{html.escape(it["name"])}</a>'
+                f'<span class="meta">{html.escape(it["meta"])}</span></div>'
+            )
+    return "".join(rows)
+
 
 sections = []
 with open(manifest, encoding="utf-8") as fh:
@@ -366,10 +395,10 @@ with open(manifest, encoding="utf-8") as fh:
         contents = root.get("contents", []) if root else []
         # "." is the webroot itself: links must be /file, not /./file.
         base = [] if rel == "." else [rel]
-        body = render(contents, base)
+        body = emit(build(contents, base))
         # Built outside the f-string: an f-string expression cannot contain a
         # backslash, and python 3.8 (Ubuntu 20.04) enforces that strictly.
-        empty = "<li class='empty'>vacío</li>"
+        empty = '<div class="row empty">vacío</div>'
         rel_href = "" if rel == "." else html.escape(href([rel]), quote=True) + "/"
         rel_text = html.escape("raíz del sitio" if rel == "." else rel + "/")
         show_heading = os.environ.get("SHOW_ROOT_HEADING", "1") != "0" or rel != "."
@@ -378,7 +407,7 @@ with open(manifest, encoding="utf-8") as fh:
         )
         sections.append(
             f'<section>{heading}'
-            f'<ul class="tree">{body or empty}</ul></section>'
+            f'<div class="tree">{body or empty}</div></section>'
         )
 
 # Curated links to other sites. Only http(s) URLs are emitted, so a stray
@@ -392,14 +421,18 @@ for raw in os.environ.get("SITES_LIST", "").splitlines():
     url, label = url.strip(), (label.strip() or url.strip())
     if not url.lower().startswith(("http://", "https://")):
         continue
-    site_items.append(
-        f'<li class="file"><a href="{html.escape(url, quote=True)}">'
-        f'{html.escape(label)}</a></li>'
-    )
+    site_items.append((url, label))
 if site_items:
+    rows = []
+    for i, (url, label) in enumerate(site_items):
+        conn = "\u2514\u2500\u2500 " if i == len(site_items) - 1 else "\u251c\u2500\u2500 "
+        rows.append(
+            f'<div class="row file"><span class="tw">{html.escape(conn)}</span>'
+            f'<a href="{html.escape(url, quote=True)}">{html.escape(label)}</a></div>'
+        )
     sections.append(
-        '<section><h2>Sitios</h2><ul class="tree">'
-        + "".join(site_items) + "</ul></section>"
+        '<section><h2>Sitios</h2><div class="tree">'
+        + "".join(rows) + "</div></section>"
     )
 
 # --- optional hydra background, TiempoGranular palette -----------------------
@@ -443,11 +476,13 @@ body {
 
 h2 { font-size: 1em; letter-spacing:.14em; border-bottom:1px solid var(--line); }
 
-/* Tree entries read as code: the markers align, the names do not wrap. */
-ul.tree, ul.tree ul { padding-left: 1.4em; }
-li { padding: 2px 0; }
-li.dir > details > summary::before,
-li.file::before { color: rgba(255,255,255,.55); }
+/* Single-spaced rows. The connector column is monospace so the box-drawing
+   characters line up across lines; the names keep the ZKM face. */
+.tree { margin: 0; }
+.row { line-height: 1.12; white-space: nowrap; overflow-x: auto; padding: 0; }
+.tw { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre; color: rgba(255,255,255,.45); font-size: .92em; }
+.row.dir .name { color: var(--fg); }
 a { border-bottom:1px solid transparent; color: var(--fg); }
 a:hover { color:#111; background:var(--fg); text-shadow:none; border-bottom-color:var(--fg); }
 .meta { font-size:.72em; color:var(--fg-dim); opacity:.8; }
