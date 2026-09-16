@@ -117,6 +117,13 @@ MAX_DEPTH="${MAX_DEPTH:-4}"
 # page and no visitor input is ever evaluated.
 HYDRA_JS="${HYDRA_JS:-}"
 
+# Any timestamp from this year onward is treated as an artefact of maintenance
+# rather than a fact about the file, and is not displayed. The rewrite tools
+# edit in place, which resets mtime to now; showing that would date
+# twenty-year-old pages to this week. Images and other binaries were never
+# rewritten, so their timestamps survived and are shown.
+STALE_FROM="${STALE_FROM:-2025}"
+
 # Never list these, at any depth. tree already hides dotfiles unless -a is
 # given; they are repeated here so the intent is explicit and survives edits.
 #
@@ -292,7 +299,7 @@ fi
 mkdir -p "$out_dir"
 
 SITES_LIST="$(printf '%s\n' ${SITES+"${SITES[@]}"})" \
-HYDRA_JS="$HYDRA_JS" \
+HYDRA_JS="$HYDRA_JS" STALE_FROM="$STALE_FROM" \
 MANIFEST="$manifest" PAGE_TITLE="$PAGE_TITLE" PAGE_INTRO="$PAGE_INTRO" \
 SHOW_ROOT_HEADING="$SHOW_ROOT_HEADING" \
 python3 - > "$OUTPUT" <<'PYTHON'
@@ -322,6 +329,26 @@ PROXIED = (".mp3", ".ogg", ".aac", ".opus", ".m3u", ".pls")
 
 counts = {"dirs": 0, "files": 0, "bytes": 0, "blocked": 0}
 
+try:
+    STALE_FROM = int(os.environ.get("STALE_FROM", "2025"))
+except ValueError:
+    STALE_FROM = 2025
+
+
+def trusted_year(node):
+    """The file's year, or None when it cannot be believed.
+
+    tree is asked for %Y, so this is a bare four-digit year. Anything at or
+    after STALE_FROM is the fingerprint of an in-place rewrite rather than a
+    date the file earned, and is discarded.
+    """
+    t = str(node.get("time", "")).strip()
+    if len(t) == 4 and t.isdigit():
+        y = int(t)
+        if y < STALE_FROM:
+            return y
+    return None
+
 def build(nodes, base):
     """Turn tree's JSON into a nested list of items, dropping what is hidden.
 
@@ -346,19 +373,28 @@ def build(nodes, base):
             if not kids:
                 continue
             counts["dirs"] += 1
+            # A folder takes the earliest trustworthy year among everything
+            # inside it. Its own mtime is useless — it changes whenever any
+            # child is written — but the images beneath it were never rewritten,
+            # so they still carry real dates. This is what puts a pre-2020 year
+            # on a folder whose own timestamp says this week.
+            kid_years = [k["year"] for k in kids if k.get("year")]
             items.append({"kind": "dir", "name": name, "kids": kids,
-                          "url": href(parts)})
+                          "url": href(parts),
+                          "year": min(kid_years) if kid_years else None})
         else:
             counts["files"] += 1
             size = node.get("size")
             if isinstance(size, int):
                 counts["bytes"] += size
+            year = trusted_year(node)
             items.append({
                 "kind": "file",
                 "name": name,
                 "url": href(parts),
+                "year": year,
                 "meta": " ".join(x for x in (
-                    human(size), str(node.get("time", "")).strip()) if x),
+                    human(size), str(year) if year else "") if x),
                 "blocked": name.lower().endswith(PROXIED),
             })
     return items
@@ -394,6 +430,7 @@ def emit(items, prefix=""):
                 f'<details class="branch">'
                 f'<summary class="row dir"><span class="tw">{pre}</span>'
                 f'<span class="name">{html.escape(it["name"])}/</span>'
+                f'<span class="meta">{it["year"] or ""}</span>'
                 f'<a class="open" href="/{html.escape(it["url"], quote=True)}/"'
                 f' title="abrir carpeta">\u2197</a>'
                 f'</summary>'
