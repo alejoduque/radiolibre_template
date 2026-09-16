@@ -212,7 +212,11 @@ for rel in "${PUBLISH[@]}"; do
   json="$tmp/tree.$published.json"
   # -J json, -s sizes, -D dates, --noreport drops the trailing summary,
   # --dirsfirst groups folders. tree does not follow symlinks without -l.
-  tree -J -s -D --timefmt '%Y-%m-%d' \
+  # Year only. A full date implies the file was made that day, which for these
+  # archives it was not — the timestamps record when the collection was
+  # assembled and copied between servers, not when the work happened. A year is
+  # the most precision the data actually supports.
+  tree -J -s -D --timefmt '%Y' \
        -L "$MAX_DEPTH" -I "$IGNORE" \
        --noreport --dirsfirst \
        -- "$dir" > "$json"
