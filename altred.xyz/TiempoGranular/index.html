@@ -69,11 +69,18 @@
 
   // Four sources, one per output. Ordered smallest first so something appears
   // quickly: storm is under a megabyte, the others take a while on a slow link.
+  // One clip per output. Ordered smallest first so something appears while the
+  // rest arrive.
+  //
+  // rarae_aves is the web version, not the original: the source is 74 minutes
+  // of 720p VP8 at 586MB. Nothing is wrong with that file as an archive master,
+  // but as a texture in a browser it is the wrong shape — see the ffmpeg recipe
+  // in README.md next to this page.
   var CLIPS = [
     '/archivos/storm.webm',
     '/archivos/am.webm',
     '/archivos/arbol.webm',
-    '/archivos/std_nosound_lr.mp4'
+    '/archivos/rarae_aves_2016_web.mp4'
   ];
 
   var canvas = document.getElementById('c');
@@ -137,9 +144,11 @@
   // Each quadrant treats its clip differently, so the four read as one piece
   // rather than four unrelated windows.
   src(s0).contrast(1.25).saturate(0.7).out(o0);
-  src(s1).thresh(0.48, 0.12).out(o1);
+  src(s1).thresh(0.48, 0.12).modulate(src(s3), 0.06).out(o1);
   src(s2).modulate(src(o0), 0.22).contrast(1.1).out(o2);
-  src(s3).pixelate(96, 54).saturate(0.5).out(o3);
+  // rarae_aves stays closest to itself — it is the one with something to look
+  // at — while also stirring the thresholded quadrant above.
+  src(s3).contrast(1.1).saturate(0.9).out(o3);
 
   // render() with no argument lays all four outputs out as a 2x2 grid, which
   // is the "divided in four" part.
