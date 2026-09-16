@@ -541,6 +541,17 @@ summary.row:hover .name { border-bottom:1px solid var(--fg); }
 .row.dir .name::after { content:' \u2026'; color:rgba(255,255,255,.5); }
 details[open] > .row.dir .name::after { content:''; }
 
+/* The two current things, above the archive rather than buried under it.
+   Larger than the tree, and set tight together so they read as one pair
+   rather than two stray lines. Same arrow on both. */
+nav.top { margin:0 0 26px; line-height:1.25; }
+nav.top a { display:block; font-size:1.5em; letter-spacing:.03em;
+  border-bottom:1px solid transparent; width:max-content; max-width:100%; }
+nav.top a + a { margin-top:2px; }
+nav.top a:hover { color:#111; background:var(--fg); text-shadow:none; }
+nav.top .arw { font-size:.68em; opacity:.55; vertical-align:.12em; }
+nav.top a:hover .arw { opacity:1; }
+
 /* Small arrow to open the directory itself, rather than just expand it. */
 a.open { margin-left:.5em; font-size:.8em; opacity:.45; text-decoration:none; }
 a.open:hover { opacity:1; }
@@ -602,14 +613,6 @@ a:hover { color:#111; background:var(--fg); text-shadow:none; border-bottom-colo
 """
 
 generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-note = ""
-if counts["blocked"]:
-    note = (
-        f'<p class="note">{counts["blocked"]} archivo(s) de audio no se listan como '
-        f'enlace: nginx envía .mp3/.ogg/.aac/.opus/.m3u/.pls a Icecast, así que no '
-        f'se pueden descargar desde aquí.</p>'
-    )
-
 print(f"""<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -647,15 +650,17 @@ footer {{ margin-top:40px; border-top:1px solid #333; padding-top:12px; }}
 <body>
 {hydra_body}
 <div class="wrap">
+<nav class="top">
+<a href="https://radiolibre.altred.xyz/">radiolibre <span class="arw">&#8599;</span></a>
+<a href="/Portafolio_ParlamentoDeLoVivo.html">Parlamento de lo Vivo <span class="arw">&#8599;</span></a>
+</nav>
 {f'<h1>{html.escape(title)}</h1>' if title else ''}
 {f'<p class="intro">{html.escape(intro)}</p>' if intro else ''}
-{note}
 {"".join(sections)}
 <footer>
 <p class="generated">{counts["dirs"]} carpetas, {counts["files"]} archivos,
 {human(counts["bytes"])} &middot; generado {generated}</p>
-<p class="generated"><a href="https://radiolibre.altred.xyz/">&larr; radiolibre</a></p>
-<p class="generated"><a href="/Portafolio_ParlamentoDeLoVivo.html">Parlamento de lo Vivo</a></p>
+
 </footer>
 </div>
 </body>
