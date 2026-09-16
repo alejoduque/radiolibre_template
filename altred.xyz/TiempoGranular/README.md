@@ -40,6 +40,20 @@ H.264 rather than VP9: VP9 would be perhaps 30% smaller but takes many times
 longer to encode, and this is a background texture being contrast-stretched and
 modulated — the difference will not survive the patch.
 
+### Speeding it up
+
+The patch uses a sped-up cut. `setpts` rescales presentation timestamps, so
+`0.25*PTS` plays four times faster; there is no audio to keep in sync because
+`-an` already dropped it.
+
+    ffmpeg -i rarae_aves_2016_web.mp4 -vf "setpts=0.25*PTS" \
+      -c:v libx264 -crf 30 -preset veryfast \
+      -pix_fmt yuv420p -an -movflags +faststart \
+      rarae_aves_2016_fast.mp4
+
+Change the multiplier for a different rate: `0.5` is 2×, `0.125` is 8×. Faster
+also means smaller, since there are fewer frames to store.
+
 ### Optional: the whole piece, compressed
 
 For watching rather than for the patch. This re-encodes 74 minutes and will

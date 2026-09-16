@@ -56,7 +56,6 @@
 
 <div class="ui">
   <button id="toggle" type="button">pausa</button>
-  <a href="/mdelibre/tg/">TiempoGranular &#8599;</a>
   <a href="https://altred.xyz/">altred &#8599;</a>
 </div>
 
@@ -78,9 +77,9 @@
   // in README.md next to this page.
   var CLIPS = [
     '/archivos/storm.webm',
-    '/archivos/am.webm',
+    '/mdelibre/tg/content/TiempoGranular/shared/storm_thunder.mp4',
     '/archivos/arbol.webm',
-    '/archivos/rarae_aves_2016_web.mp4'
+    '/archivos/rarae_aves_2016_fast.mp4'
   ];
 
   var canvas = document.getElementById('c');
@@ -143,12 +142,12 @@
 
   // Each quadrant treats its clip differently, so the four read as one piece
   // rather than four unrelated windows.
-  src(s0).contrast(1.25).saturate(0.7).out(o0);
-  src(s1).thresh(0.48, 0.12).modulate(src(s3), 0.06).out(o1);
-  src(s2).modulate(src(o0), 0.22).contrast(1.1).out(o2);
-  // rarae_aves stays closest to itself — it is the one with something to look
-  // at — while also stirring the thresholded quadrant above.
-  src(s3).contrast(1.1).saturate(0.9).out(o3);
+  // No treatment: each clip goes to its own output as shot. The grid itself is
+  // the composition.
+  src(s0).out(o0);
+  src(s1).out(o1);
+  src(s2).out(o2);
+  src(s3).out(o3);
 
   // render() with no argument lays all four outputs out as a 2x2 grid, which
   // is the "divided in four" part.
