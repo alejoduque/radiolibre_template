@@ -5,187 +5,152 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TiempoGranular</title>
 <style>
-  html, body { margin:0; height:100%; background:#000; overflow:hidden; }
-  #c { position:fixed; inset:0; width:100%; height:100%; display:block; }
+  :root { --gap: 10px; }
+  html, body { margin:0; background:#000; color:#fff; }
+  body { font:14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
-  /* The still elements sit above the four video outputs. They are real <img>
-     tags rather than hydra sources on purpose: pulling them through the synth
-     would resample them to the canvas resolution and soften the logo, and
-     nothing here needs them to be modulated. */
-  .layer { position:fixed; inset:0; pointer-events:none; }
+  /* Hero: a single hydra output with the logo over it. One output rather than
+     four because the logo is a transparent PNG — over a 2x2 grid it sat on
+     whatever each quadrant happened to be doing and became unreadable. The
+     storm clip is the one with enough white to carry it. */
+  .hero { position:relative; width:100%; height:72vh; min-height:320px;
+    overflow:hidden; background:#000; }
+  #c { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .logo { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:min(46vw, 430px); z-index:2; pointer-events:none; }
 
-  .spectrum {
-    position:absolute; left:0; right:0; bottom:0; width:100%;
-    /* screen keeps the transparent PNG's dark ground from flattening the
-       video underneath */
-    mix-blend-mode:screen; opacity:.85;
+  /* The other clips sit BELOW where the logo ends, not over it. */
+  .strip { display:flex; flex-wrap:wrap; gap:var(--gap); padding:var(--gap); }
+  .strip video { flex:1 1 260px; min-width:0; width:100%; height:auto;
+    display:block; background:#111; }
+
+  .ui { padding:6px var(--gap) 26px; }
+  .ui a, .ui button {
+    background:rgba(0,0,0,.45); color:#fff; border:1px solid rgba(255,255,255,.45);
+    padding:6px 12px; margin:0 6px 8px 0; cursor:pointer; text-decoration:none;
+    font:inherit; border-radius:3px; display:inline-block;
   }
-  .logo {
-    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-    width:min(38vw, 340px); mix-blend-mode:screen; opacity:.92;
-  }
+  .ui a:hover, .ui button:hover { background:#fff; color:#000; }
+  .credit { margin:10px 0 0; max-width:60ch; color:#cfcfcf; font-size:13px; }
 
-  /* Controls, deliberately unobtrusive. */
-  .ui { position:fixed; left:14px; bottom:12px; z-index:5;
-    font:13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color:#fff;
-    text-shadow:0 1px 3px #000; }
-  .ui button, .ui a {
-    background:rgba(0,0,0,.45); color:#fff; border:1px solid rgba(255,255,255,.4);
-    padding:5px 10px; margin-right:6px; cursor:pointer; text-decoration:none;
-    font:inherit; border-radius:3px;
-  }
-  .ui button:hover, .ui a:hover { background:#fff; color:#000; }
-
-  #msg { position:fixed; inset:0; display:flex; align-items:center;
-    justify-content:center; color:#fff; z-index:6;
-    font:15px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
-    text-align:center; background:rgba(0,0,0,.55); cursor:pointer; }
+  #msg { position:absolute; inset:0; display:flex; align-items:center;
+    justify-content:center; z-index:3; background:rgba(0,0,0,.5);
+    cursor:pointer; text-align:center; }
   #msg[hidden] { display:none; }
+
+  @media (max-width: 600px) {
+    .hero { height:56vh; }
+    .logo { width:70vw; }
+  }
 </style>
 </head>
 <body>
 
-<canvas id="c"></canvas>
-
-<div class="layer">
-  <img class="spectrum" alt=""
-       src="/mdelibre/tg/content/TiempoGranular/shared/ondas_spectravue_transp.png">
+<section class="hero">
+  <canvas id="c"></canvas>
   <img class="logo" alt="TiempoGranular"
        src="/mdelibre/tg/content/TiempoGranular/shared/tg_logo.png">
+  <div id="msg">cargando…</div>
+</section>
+
+<div class="strip">
+  <video class="clip" src="/archivos/arbol.webm" muted loop playsinline preload="metadata"></video>
+  <video class="clip" src="/mdelibre/tg/content/TiempoGranular/shared/storm_thunder.mp4" muted loop playsinline preload="metadata"></video>
+  <video class="clip" src="/archivos/rarae_aves_2016_fast.mp4" muted loop playsinline preload="metadata"></video>
 </div>
 
 <div class="ui">
   <button id="toggle" type="button">pausa</button>
   <a href="https://altred.xyz/">altred &#8599;</a>
+  <p class="credit">Premio de Documentacion online de la Residencia Emergente - Museo de Antioquia.</p>
 </div>
-
-<div id="msg">cargando…</div>
 
 <script src="/assets/js/hydra-synth.js"></script>
 <script>
 (function () {
   'use strict';
 
-  // Four sources, one per output. Ordered smallest first so something appears
-  // quickly: storm is under a megabyte, the others take a while on a slow link.
-  // One clip per output. Ordered smallest first so something appears while the
-  // rest arrive.
-  //
-  // rarae_aves is the web version, not the original: the source is 74 minutes
-  // of 720p VP8 at 586MB. Nothing is wrong with that file as an archive master,
-  // but as a texture in a browser it is the wrong shape — see the ffmpeg recipe
-  // in README.md next to this page.
-  var CLIPS = [
-    '/archivos/storm.webm',
-    '/mdelibre/tg/content/TiempoGranular/shared/storm_thunder.mp4',
-    '/archivos/arbol.webm',
-    '/archivos/rarae_aves_2016_fast.mp4'
-  ];
+  var HERO_CLIP = '/archivos/storm.webm';
 
   var canvas = document.getElementById('c');
   var msg = document.getElementById('msg');
   var toggle = document.getElementById('toggle');
-  var videos = [];
+  var strip = Array.prototype.slice.call(document.querySelectorAll('.strip video'));
+  var heroVideo = null;
   var running = true;
 
-  function fail(text) {
-    msg.hidden = false;
-    msg.textContent = text;
-  }
+  function fail(t) { msg.hidden = false; msg.textContent = t; }
 
-  if (typeof window.Hydra === 'undefined') {
-    fail('no se pudo cargar hydra-synth.js');
-    return;
-  }
+  if (typeof window.Hydra === 'undefined') { fail('no se pudo cargar hydra-synth.js'); return; }
 
+  // The canvas is sized to the hero, not the window, since it no longer covers
+  // the page.
   function size() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    var r = canvas.parentNode.getBoundingClientRect();
+    canvas.width = Math.max(1, Math.round(r.width));
+    canvas.height = Math.max(1, Math.round(r.height));
   }
   size();
   window.addEventListener('resize', size);
 
-  var hy;
   try {
-    hy = new window.Hydra({
-      canvas: canvas,
-      detectAudio: false,          // never ask the visitor for a microphone
-      enableStreamCapture: false
-    });
+    new window.Hydra({ canvas: canvas, detectAudio: false, enableStreamCapture: false });
   } catch (e) {
     fail('este navegador no puede iniciar WebGL');
     return;
   }
 
-  // Video elements are built by hand rather than with initVideo() so that
-  // muted/playsinline/loop are set BEFORE the first play() call. Autoplay is
-  // only permitted for muted video, and playsinline stops iOS taking it
-  // fullscreen.
-  function makeVideo(url) {
-    var v = document.createElement('video');
-    v.src = url;
-    v.loop = true;
-    v.muted = true;
-    v.defaultMuted = true;
-    v.playsInline = true;
-    v.setAttribute('playsinline', '');
-    v.setAttribute('muted', '');
-    v.preload = 'auto';
-    return v;
-  }
+  // muted/playsinline/loop must be set before play(): autoplay is only allowed
+  // for muted video, and playsinline stops iOS going fullscreen.
+  heroVideo = document.createElement('video');
+  heroVideo.src = HERO_CLIP;
+  heroVideo.loop = true;
+  heroVideo.muted = true;
+  heroVideo.defaultMuted = true;
+  heroVideo.playsInline = true;
+  heroVideo.setAttribute('playsinline', '');
+  heroVideo.setAttribute('muted', '');
+  heroVideo.preload = 'auto';
 
-  CLIPS.forEach(function (url, i) {
-    var v = makeVideo(url);
-    videos.push(v);
-    window['s' + i].init({ src: v });
-  });
+  s0.init({ src: heroVideo });
 
-  // Each quadrant treats its clip differently, so the four read as one piece
-  // rather than four unrelated windows.
-  // No treatment: each clip goes to its own output as shot. The grid itself is
-  // the composition.
+  // No treatment, and a single output: render(o0) rather than the 2x2 grid.
   src(s0).out(o0);
-  src(s1).out(o1);
-  src(s2).out(o2);
-  src(s3).out(o3);
+  render(o0);
 
-  // render() with no argument lays all four outputs out as a 2x2 grid, which
-  // is the "divided in four" part.
-  render();
-
-  function startAll() {
-    var pending = videos.map(function (v) {
+  function playAll() {
+    var all = [heroVideo].concat(strip);
+    return Promise.all(all.map(function (v) {
       var p = v.play();
-      return p && p.catch ? p : Promise.resolve();
-    });
-    return Promise.all(pending);
+      return p && p.catch ? p.catch(function () {}) : Promise.resolve();
+    }));
   }
 
-  startAll().then(function () {
+  heroVideo.play().then(function () {
     msg.hidden = true;
+    strip.forEach(function (v) { v.play().catch(function () {}); });
   }).catch(function () {
-    // Autoplay refused despite muted video: needs one gesture.
     msg.hidden = false;
     msg.textContent = 'tocar para comenzar';
     msg.addEventListener('click', function once() {
       msg.removeEventListener('click', once);
-      startAll().then(function () { msg.hidden = true; });
+      playAll().then(function () { msg.hidden = true; });
     });
   });
 
   toggle.addEventListener('click', function () {
     running = !running;
-    videos.forEach(function (v) { running ? v.play() : v.pause(); });
+    [heroVideo].concat(strip).forEach(function (v) {
+      running ? v.play().catch(function () {}) : v.pause();
+    });
     toggle.textContent = running ? 'pausa' : 'seguir';
   });
 
-  // Stop decoding four videos while nobody is looking.
+  // Four videos decoding for a tab nobody is looking at is pure waste.
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden) {
-      videos.forEach(function (v) { v.pause(); });
-    } else if (running) {
-      videos.forEach(function (v) { v.play().catch(function () {}); });
-    }
+    var all = [heroVideo].concat(strip);
+    if (document.hidden) { all.forEach(function (v) { v.pause(); }); }
+    else if (running) { all.forEach(function (v) { v.play().catch(function () {}); }); }
   });
 })();
 </script>
