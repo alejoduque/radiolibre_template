@@ -70,6 +70,10 @@ RULES=(
   # The related images are separate, under dorkbotmde/bogota_declaration/.
   # Every observed reference is the bare /bogdec with no sub-path, so a plain
   # match is safe here; if sub-paths ever appear this rule would mangle them.
+  # TiempoGranular's media, which lived on a hydra-server on port 9999 of this
+  # same machine. Those files are now linked at /archivos/, the identical path
+  # the old URLs used, so only the host and port change.
+  "https?://116\.203\.239\.139:9999	https://altred.xyz"
   "$BASE_RE/bogdec	https://altred.xyz/mdelibre/dorkbotmde/dorkbotmde_wiki/DorkbotMdeWiki%20DeclaracionBogota%20iEMS%20-%20dorkbot-wiki.html"
 )
 
