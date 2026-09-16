@@ -506,7 +506,13 @@ body {
   background: var(--bg); color: var(--fg);
 }
 
-#hydra-bg { position:fixed; inset:0; width:100%; height:100%; z-index:0; display:block; }
+/* pointer-events:none matters: the canvas is fixed and covers the whole
+   viewport, and the content column is only 820px wide and left-aligned, so
+   most of the window is bare canvas. Without this it is the event target for
+   anything you do out there, and the page will not scroll from most of its
+   own surface. */
+#hydra-bg { position:fixed; inset:0; width:100%; height:100%; z-index:0;
+  display:block; pointer-events:none; }
 
 /* No panel behind the text. Legibility over moving video comes from a shadow
    instead, which keeps the sketch fully visible. */
@@ -521,8 +527,12 @@ h2 { font-size: 1em; letter-spacing:.14em; border-bottom:1px solid var(--line); 
 
 /* Single-spaced rows. The connector column is monospace so the box-drawing
    characters line up across lines; the names keep the ZKM face. */
-.tree { margin: 0; }
-.row { line-height: 1.12; white-space: nowrap; overflow-x: auto; padding: 0; }
+/* One horizontal scroll container for the whole tree, not one per row.
+   Dozens of overflow-x:auto elements each absorb wheel and trackpad gestures
+   that happen to carry a horizontal component, which on a trackpad is most of
+   them — vertical scrolling dies wherever the pointer sits over a row. */
+.tree { margin: 0; overflow-x: auto; }
+.row { line-height: 1.12; white-space: nowrap; padding: 0; }
 .tw { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   white-space: pre; color: rgba(255,255,255,.45); font-size: .92em; }
 .branch, .kids { margin:0; padding:0; }
