@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TiempoGranular</title>
+<style>
+  html, body { margin:0; height:100%; background:#000; overflow:hidden; }
+  #c { position:fixed; inset:0; width:100%; height:100%; display:block; }
+
+  /* The still elements sit above the four video outputs. They are real <img>
+     tags rather than hydra sources on purpose: pulling them through the synth
+     would resample them to the canvas resolution and soften the logo, and
+     nothing here needs them to be modulated. */
+  .layer { position:fixed; inset:0; pointer-events:none; }
+
+  .spectrum {
+    position:absolute; left:0; right:0; bottom:0; width:100%;
+    /* screen keeps the transparent PNG's dark ground from flattening the
+       video underneath */
+    mix-blend-mode:screen; opacity:.85;
+  }
+  .logo {
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:min(38vw, 340px); mix-blend-mode:screen; opacity:.92;
+  }
+
+  /* Controls, deliberately unobtrusive. */
+  .ui { position:fixed; left:14px; bottom:12px; z-index:5;
+    font:13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color:#fff;
+    text-shadow:0 1px 3px #000; }
+  .ui button, .ui a {
+    background:rgba(0,0,0,.45); color:#fff; border:1px solid rgba(255,255,255,.4);
+    padding:5px 10px; margin-right:6px; cursor:pointer; text-decoration:none;
+    font:inherit; border-radius:3px;
+  }
+  .ui button:hover, .ui a:hover { background:#fff; color:#000; }
+
+  #msg { position:fixed; inset:0; display:flex; align-items:center;
+    justify-content:center; color:#fff; z-index:6;
+    font:15px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+    text-align:center; background:rgba(0,0,0,.55); cursor:pointer; }
+  #msg[hidden] { display:none; }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div class="layer">
+  <img class="spectrum" alt=""
+       src="/mdelibre/tg/content/TiempoGranular/shared/ondas_spectravue_transp.png">
+  <img class="logo" alt="TiempoGranular"
+       src="/mdelibre/tg/content/TiempoGranular/shared/tg_logo.png">
+</div>
+
+<div class="ui">
+  <button id="toggle" type="button">pausa</button>
+  <a href="/mdelibre/tg/">TiempoGranular &#8599;</a>
+  <a href="https://altred.xyz/">altred &#8599;</a>
+</div>
+
+<div id="msg">cargando…</div>
+
+<script src="/assets/js/hydra-synth.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // Four sources, one per output. Ordered smallest first so something appears
+  // quickly: storm is under a megabyte, the others take a while on a slow link.
+  var CLIPS = [
+    '/archivos/storm.webm',
+    '/archivos/am.webm',
+    '/archivos/arbol.webm',
+    '/archivos/std_nosound_lr.mp4'
+  ];
+
+  var canvas = document.getElementById('c');
+  var msg = document.getElementById('msg');
+  var toggle = document.getElementById('toggle');
+  var videos = [];
+  var running = true;
+
+  function fail(text) {
+    msg.hidden = false;
+    msg.textContent = text;
+  }
+
+  if (typeof window.Hydra === 'undefined') {
+    fail('no se pudo cargar hydra-synth.js');
+    return;
+  }
+
+  function size() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  size();
+  window.addEventListener('resize', size);
+
+  var hy;
+  try {
+    hy = new window.Hydra({
+      canvas: canvas,
+      detectAudio: false,          // never ask the visitor for a microphone
+      enableStreamCapture: false
+    });
+  } catch (e) {
+    fail('este navegador no puede iniciar WebGL');
+    return;
+  }
+
+  // Video elements are built by hand rather than with initVideo() so that
+  // muted/playsinline/loop are set BEFORE the first play() call. Autoplay is
+  // only permitted for muted video, and playsinline stops iOS taking it
+  // fullscreen.
+  function makeVideo(url) {
+    var v = document.createElement('video');
+    v.src = url;
+    v.loop = true;
+    v.muted = true;
+    v.defaultMuted = true;
+    v.playsInline = true;
+    v.setAttribute('playsinline', '');
+    v.setAttribute('muted', '');
+    v.preload = 'auto';
+    return v;
+  }
+
+  CLIPS.forEach(function (url, i) {
+    var v = makeVideo(url);
+    videos.push(v);
+    window['s' + i].init({ src: v });
+  });
+
+  // Each quadrant treats its clip differently, so the four read as one piece
+  // rather than four unrelated windows.
+  src(s0).contrast(1.25).saturate(0.7).out(o0);
+  src(s1).thresh(0.48, 0.12).out(o1);
+  src(s2).modulate(src(o0), 0.22).contrast(1.1).out(o2);
+  src(s3).pixelate(96, 54).saturate(0.5).out(o3);
+
+  // render() with no argument lays all four outputs out as a 2x2 grid, which
+  // is the "divided in four" part.
+  render();
+
+  function startAll() {
+    var pending = videos.map(function (v) {
+      var p = v.play();
+      return p && p.catch ? p : Promise.resolve();
+    });
+    return Promise.all(pending);
+  }
+
+  startAll().then(function () {
+    msg.hidden = true;
+  }).catch(function () {
+    // Autoplay refused despite muted video: needs one gesture.
+    msg.hidden = false;
+    msg.textContent = 'tocar para comenzar';
+    msg.addEventListener('click', function once() {
+      msg.removeEventListener('click', once);
+      startAll().then(function () { msg.hidden = true; });
+    });
+  });
+
+  toggle.addEventListener('click', function () {
+    running = !running;
+    videos.forEach(function (v) { running ? v.play() : v.pause(); });
+    toggle.textContent = running ? 'pausa' : 'seguir';
+  });
+
+  // Stop decoding four videos while nobody is looking.
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      videos.forEach(function (v) { v.pause(); });
+    } else if (running) {
+      videos.forEach(function (v) { v.play().catch(function () {}); });
+    }
+  });
+})();
+</script>
+</body>
+</html>
