@@ -50,6 +50,10 @@ fi
 # well.
 PUBLISH=(
   .
+  mdelibre/1999
+  mdelibre/dorkbotmde/k.0_lab
+  mdelibre/dorkbotmde/dorkbotmde_wiki
+  mdelibre/dorkbotmde/bogota_declaration
 )
 
 # Folders and files to keep OUT of the listing even though they sit inside a
@@ -91,6 +95,14 @@ if [ -n "${PUBLISH_DIRS:-}" ]; then
 fi
 
 # How deep to descend.
+# Filesystem prefixes a PUBLISH entry is allowed to resolve into, besides the
+# webroot itself. The webroot reaches the archives through deliberate symlinks
+# (mdelibre -> /var/www/html, and html/dorkbotmde -> /var/www/dorkbotmde), and
+# the guard that stops a stray symlink publishing /etc was also blocking these —
+# which is why the tree rendered empty. Listing a prefix here says "this link is
+# intentional"; it is still an allowlist, not a free pass.
+ALLOW_ROOTS=(/var/www/html /var/www/dorkbotmde)
+
 MAX_DEPTH="${MAX_DEPTH:-4}"
 
 # Optional hydra background, in the TiempoGranular palette.
@@ -182,11 +194,20 @@ for rel in "${PUBLISH[@]}"; do
   # symlink would otherwise publish /etc. "." is the webroot itself, so it is
   # allowed to match exactly; everything else must be strictly beneath it.
   real="$(cd "$dir" && pwd -P)"
+  allowed=0
   case "$real" in
-    "$webroot_abs") [ "$rel" = "." ] || { printf 'skip: %s (resolves to the webroot itself)\n' "$rel" >&2; continue; } ;;
-    "$webroot_abs"/*) : ;;
-    *) printf 'skip: %s (resolves outside the webroot: %s)\n' "$rel" "$real" >&2; continue ;;
+    "$webroot_abs") [ "$rel" = "." ] && allowed=1 ;;
+    "$webroot_abs"/*) allowed=1 ;;
   esac
+  if [ "$allowed" -eq 0 ]; then
+    for ar in ${ALLOW_ROOTS+"${ALLOW_ROOTS[@]}"}; do
+      case "$real" in "$ar"|"$ar"/*) allowed=1; break ;; esac
+    done
+  fi
+  if [ "$allowed" -eq 0 ]; then
+    printf 'skip: %s (resolves outside the webroot and ALLOW_ROOTS: %s)\n' "$rel" "$real" >&2
+    continue
+  fi
 
   json="$tmp/tree.$published.json"
   # -J json, -s sizes, -D dates, --noreport drops the trailing summary,
@@ -407,12 +428,18 @@ with open(manifest, encoding="utf-8") as fh:
         root = next((n for n in data if n.get("type") == "directory"), None)
         contents = root.get("contents", []) if root else []
         # "." is the webroot itself: links must be /file, not /./file.
-        base = [] if rel == "." else [rel]
+        # split on "/" — href() encodes each segment with safe="", so a
+        # multi-segment entry passed whole would come back as
+        # mdelibre%2Fdorkbotmde%2Fk.0_lab and every link under it would 404.
+        base = [] if rel == "." else rel.split("/")
         body = emit(build(contents, base))
-        # Built outside the f-string: an f-string expression cannot contain a
-        # backslash, and python 3.8 (Ubuntu 20.04) enforces that strictly.
-        empty = '<div class="row empty">vacío</div>'
-        rel_href = "" if rel == "." else html.escape(href([rel]), quote=True) + "/"
+        # A section with nothing in it is dropped rather than printed as
+        # "vacío". The webroot's own top level is usually empty now that the
+        # site files are all ignored, and a lone "vacío" at the head of the
+        # page is noise, not information.
+        if not body:
+            continue
+        rel_href = "" if rel == "." else html.escape(href(rel.split("/")), quote=True) + "/"
         rel_text = html.escape("raíz del sitio" if rel == "." else rel + "/")
         show_heading = os.environ.get("SHOW_ROOT_HEADING", "1") != "0" or rel != "."
         heading = (
@@ -420,7 +447,7 @@ with open(manifest, encoding="utf-8") as fh:
         )
         sections.append(
             f'<section>{heading}'
-            f'<div class="tree">{body or empty}</div></section>'
+            f'<div class="tree">{body}</div></section>'
         )
 
 # Curated links to other sites. Only http(s) URLs are emitted, so a stray
