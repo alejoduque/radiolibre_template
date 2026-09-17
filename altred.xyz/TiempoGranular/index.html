@@ -9,39 +9,32 @@
   html, body { margin:0; background:#000; color:#fff; }
   body { font:14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
-  /* The stage is sized to the storm clip's own frame — 720x576, a 5:4 box.
-     The stills are much wider (1280x655 is 1.95:1, the spectrum 1.49:1), so
-     stretching them to fill this box is what made them overflow and crop.
-     object-fit:contain fits each one whole inside the same frame instead.
-     No opacity on any of them: the blend mode and the alpha channel do the
-     work, and dimming them only made them muddy. */
-  .hero { display:flex; align-items:center; justify-content:center;
-    padding:var(--gap); background:#000; }
-  .stage { position:relative; width:100%; max-width:960px;
-    aspect-ratio:720 / 576; background:#000; }
+  /* The stage fills the width and is deliberately large: it is the piece, not
+     a banner. It is no longer locked to one clip's aspect, because hydra now
+     cycles several clips of differing shapes through it. */
+  .hero { position:relative; width:100%; height:82vh; min-height:340px;
+    overflow:hidden; background:#000; }
+  #c { position:absolute; inset:0; width:100%; height:100%; display:block; }
 
-  #c, .still, .spectrum { position:absolute; inset:0;
-    width:100%; height:100%; }
-  #c { display:block; }
+  /* Only two things sit over the video now.
 
-  /* Fully opaque and mostly black (median luminance 7) with bright highlights;
-     screen drops the black ground and keeps the highlights. */
-  .still { object-fit:contain; z-index:1; mix-blend-mode:screen;
-    pointer-events:none; }
+     The tree still used to be a full-frame layer here. Even on screen blend it
+     flattened everything behind it — a 1280x655 image stretched across the
+     whole stage leaves the video almost nothing to show through. It has moved
+     down into the row, where it can be looked at properly. */
 
-  /* A pure black silhouette on transparency — every visible pixel measures
-     luminance 0, so on a black page it shows nothing at all. Inverting turns
-     the silhouette white; its own alpha channel handles the rest, so it needs
-     no blend mode. */
-  .spectrum { object-fit:contain; z-index:2; filter:invert(1);
-    pointer-events:none; }
+  /* Pure black silhouette on transparency, so inverted to read on black. Kept
+     to a band along the bottom rather than the full frame. */
+  .spectrum { position:absolute; left:0; right:0; bottom:0; width:100%;
+    max-height:34%; object-fit:contain; object-position:bottom;
+    z-index:2; filter:invert(1); pointer-events:none; }
 
-  .logo { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-    width:56%; max-width:430px; z-index:3; pointer-events:none; }
+  .logo { position:absolute; left:50%; top:46%; transform:translate(-50%,-50%);
+    width:min(42vw, 420px); z-index:3; pointer-events:none; }
 
   /* The other clips sit BELOW where the logo ends, not over it. */
   .strip { display:flex; flex-wrap:wrap; gap:var(--gap); padding:var(--gap); }
-  .strip video { flex:1 1 260px; min-width:0; width:100%; height:auto;
+  .strip video, .strip img { flex:1 1 260px; min-width:0; width:100%; height:auto;
     display:block; background:#111; }
 
   .ui { padding:6px var(--gap) 26px; }
@@ -74,21 +67,19 @@
 <body>
 
 <section class="hero">
-  <div class="stage">
   <canvas id="c"></canvas>
-  <img class="still" alt=""
-       src="/mdelibre/tg/?TiempoGranular.head.160168435816">
   <img class="spectrum" alt=""
        src="/mdelibre/tg/content/TiempoGranular/shared/ondas_spectravue_transp.png">
   <img class="logo" alt="TiempoGranular"
        src="/mdelibre/tg/content/TiempoGranular/shared/tg_logo.png">
   <div id="msg">cargando…</div>
-  </div>
 </section>
 
 <div class="strip">
+  <img class="clip still-row" alt=""
+       src="/mdelibre/tg/?TiempoGranular.head.160168435816">
   <video class="clip" src="/archivos/arbol.webm" muted loop playsinline preload="metadata"></video>
-  <video class="clip" src="/archivos/rarae_aves_2016_fast.mp4" muted loop playsinline preload="metadata"></video>
+  <video class="clip" src="/archivos/rarae_aves_2016_web.mp4" muted loop playsinline preload="metadata"></video>
 </div>
 
 <div class="text">
@@ -107,21 +98,30 @@
 (function () {
   'use strict';
 
-  var HERO_CLIP = '/archivos/storm.webm';
+  // hydra cycles these as the background, crossfading between them. Chosen to
+  // not repeat what is already in the row below, and kept light: storm is under
+  // a megabyte, am is 7.6M. Swap freely — everything in /archivos/ is served.
+  var HERO_CLIPS = [
+    '/archivos/storm.webm',
+    '/archivos/am.webm',
+    '/archivos/std_nosound_lr.mp4'
+  ];
+  var HOLD_MS = 9000;   // time on each clip
+  var FADE_MS = 2500;   // crossfade duration
 
   var canvas = document.getElementById('c');
   var msg = document.getElementById('msg');
   var toggle = document.getElementById('toggle');
   var strip = Array.prototype.slice.call(document.querySelectorAll('.strip video'));
-  var heroVideo = null;
+  var heroVideos = [];
   var running = true;
+  var mix = 0;
+  var cur = 0;
 
   function fail(t) { msg.hidden = false; msg.textContent = t; }
 
   if (typeof window.Hydra === 'undefined') { fail('no se pudo cargar hydra-synth.js'); return; }
 
-  // The canvas is sized to the hero, not the window, since it no longer covers
-  // the page.
   function size() {
     var r = canvas.parentNode.getBoundingClientRect();
     canvas.width = Math.max(1, Math.round(r.width));
@@ -137,36 +137,65 @@
     return;
   }
 
-  // muted/playsinline/loop must be set before play(): autoplay is only allowed
+  // muted/playsinline/loop before the first play(): autoplay is only permitted
   // for muted video, and playsinline stops iOS going fullscreen.
-  heroVideo = document.createElement('video');
-  heroVideo.src = HERO_CLIP;
-  heroVideo.loop = true;
-  heroVideo.muted = true;
-  heroVideo.defaultMuted = true;
-  heroVideo.playsInline = true;
-  heroVideo.setAttribute('playsinline', '');
-  heroVideo.setAttribute('muted', '');
-  heroVideo.preload = 'auto';
+  function makeVideo(url) {
+    var v = document.createElement('video');
+    v.src = url;
+    v.loop = true;
+    v.muted = true;
+    v.defaultMuted = true;
+    v.playsInline = true;
+    v.setAttribute('playsinline', '');
+    v.setAttribute('muted', '');
+    v.preload = 'auto';
+    return v;
+  }
 
-  s0.init({ src: heroVideo });
+  HERO_CLIPS.forEach(function (url, i) {
+    var v = makeVideo(url);
+    heroVideos.push(v);
+    window['s' + i].init({ src: v });
+  });
 
-  // No treatment, and a single output: render(o0) rather than the 2x2 grid.
-  src(s0).out(o0);
+  // The blend amount is passed as a FUNCTION, not a number. hydra re-evaluates
+  // it every frame, so animating `mix` crossfades without rebuilding the chain
+  // sixty times a second.
+  function chain(a, b) {
+    src(window['s' + a]).blend(src(window['s' + b]), function () { return mix; }).out(o0);
+  }
+
+  var n = HERO_CLIPS.length;
+  chain(0, n > 1 ? 1 : 0);
   render(o0);
 
+  function step() {
+    if (n < 2) return;
+    var nxt = (cur + 1) % n;
+    chain(cur, nxt);
+    var t0 = (window.performance || Date).now();
+    (function anim() {
+      var k = Math.min(1, ((window.performance || Date).now() - t0) / FADE_MS);
+      mix = k * k * (3 - 2 * k);            // smoothstep, so it eases in and out
+      if (k < 1) { requestAnimationFrame(anim); return; }
+      cur = nxt;
+      mix = 0;
+      chain(cur, (cur + 1) % n);
+      setTimeout(step, HOLD_MS);
+    })();
+  }
+  if (n > 1) setTimeout(step, HOLD_MS);
+
+  function all() { return heroVideos.concat(strip); }
+
   function playAll() {
-    var all = [heroVideo].concat(strip);
-    return Promise.all(all.map(function (v) {
-      var p = v.play();
-      return p && p.catch ? p.catch(function () {}) : Promise.resolve();
+    return Promise.all(all().map(function (v) {
+      var pr = v.play();
+      return pr && pr.catch ? pr.catch(function () {}) : Promise.resolve();
     }));
   }
 
-  heroVideo.play().then(function () {
-    msg.hidden = true;
-    strip.forEach(function (v) { v.play().catch(function () {}); });
-  }).catch(function () {
+  playAll().then(function () { msg.hidden = true; }).catch(function () {
     msg.hidden = false;
     msg.textContent = 'tocar para comenzar';
     msg.addEventListener('click', function once() {
@@ -174,20 +203,20 @@
       playAll().then(function () { msg.hidden = true; });
     });
   });
+  // Hide the notice as soon as the first frame is available, even if a later
+  // clip is still arriving.
+  heroVideos[0].addEventListener('playing', function () { msg.hidden = true; });
 
   toggle.addEventListener('click', function () {
     running = !running;
-    [heroVideo].concat(strip).forEach(function (v) {
-      running ? v.play().catch(function () {}) : v.pause();
-    });
+    all().forEach(function (v) { running ? v.play().catch(function () {}) : v.pause(); });
     toggle.textContent = running ? 'pausa' : 'seguir';
   });
 
-  // Four videos decoding for a tab nobody is looking at is pure waste.
+  // Several videos decoding for a tab nobody is looking at is pure waste.
   document.addEventListener('visibilitychange', function () {
-    var all = [heroVideo].concat(strip);
-    if (document.hidden) { all.forEach(function (v) { v.pause(); }); }
-    else if (running) { all.forEach(function (v) { v.play().catch(function () {}); }); }
+    if (document.hidden) { all().forEach(function (v) { v.pause(); }); }
+    else if (running) { all().forEach(function (v) { v.play().catch(function () {}); }); }
   });
 })();
 </script>
