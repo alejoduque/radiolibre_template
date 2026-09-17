@@ -29,9 +29,6 @@
   .stack img { position:absolute; left:0; top:0;
     width:100%; height:auto; display:block; }
 
-  /* Opaque and mostly black, so screen drops its ground over what is beneath. */
-  .stack .still { mix-blend-mode:screen; }
-
   /* A pure black silhouette on transparency: shows nothing on black until
      inverted. */
   .stack .spectrum { filter:invert(1); }
@@ -55,6 +52,12 @@
     font-family:Verdana, Geneva, Tahoma, sans-serif; font-size:14px;
     line-height:1.72; color:#e6e6e6; }
   .text p { margin:0 0 1.1em; }
+
+  /* The tree still, sized to the text column and sitting above it. Opaque and
+     mostly black, so screen drops its ground and it meets the page without a
+     visible rectangle. */
+  .text .still { display:block; width:100%; height:auto; margin:0 0 22px;
+    mix-blend-mode:screen; }
   .text a { color:#fff; }
 
   #msg { position:absolute; inset:0; display:flex; align-items:center;
@@ -75,8 +78,6 @@
   <div class="stack">
     <img class="logo" alt="TiempoGranular"
          src="/mdelibre/tg/content/TiempoGranular/shared/tg_logo.png">
-    <img class="still" alt=""
-         src="/mdelibre/tg/?TiempoGranular.head.160168435816">
     <img class="spectrum" alt=""
          src="/mdelibre/tg/content/TiempoGranular/shared/ondas_spectravue_transp.png">
   </div>
@@ -89,6 +90,8 @@
 </div>
 
 <div class="text">
+<img class="still" alt=""
+     src="/mdelibre/tg/?TiempoGranular.head.160168435816">
 <p>¿Cómo suena la noche contrastada al dia? Este proyecto pretende convertir el espacio del Museo en un instrumento científico ubicado en el cruce específico planetario de Lat 6.2525, Lon -75.569167. Desde allí monitorearé con instrumentos científicos durante 3 días - 72 horas, recolectando in-situ datos del aire, niveles de ruido y el cielo. Daremos cuenta de 3 tipos de polución: aire, ruido, luz y las contrastaré de manera poética al ser presentadas vía una interfaz web que permitirá ver el cielo con un lente gran angular en tiempo real, mientras escuchamos la grabación del audio correspondiente a los sonidos ocurridos 12h antes con un micrófono de frontera amplia. El día será la noche. La noche sera el día. Dicha interfaz también presentará los datos de niveles acústicos, de material particulado en el aire pm2.5 y nos dejará ver la alta contaminación lumínica en el centro de la ciudad durante la noche gracias al uso de una cámara especial para el registro de meteoros. Será una interfaz más contemplativa que científica donde se presentarán en video los registros más significativos de las 72 horas de captura. Aves, aviones, truenos, satélites, ovnis(?) acompañados de los ruidos de la noche y del dia, lejanos y cercanos en el tiempo granular.</p>
 <p>La intención es montar una pequeña estación de monitoreo temporal (un fin de semana) en el patio central del Museo de Antioquia para recolectar datos durante 3 días, iniciando un viernes y terminando el lunes siguiente. Con una cámara que mira al cielo para intentar captar el paso de meteoros de marca Wattec y usada por experimentos de la NASA, se registrarán 72 horas en total de imágenes de video del cielo de la cuidad, tanto de día como de noche para ser contrastadas con la grabación digital acústica, usando un micrófono especial ambiental o de límite (boundary mic de AKG). Los niveles de ruido y de pm2.5 (material particulado) serán obtenidos con el sensor AQA creado con el colectivo un/loquer agentes-sensores</p>
 </div>
