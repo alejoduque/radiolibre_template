@@ -16,38 +16,38 @@
     overflow:hidden; background:#000; }
   #c { position:absolute; inset:0; width:100%; height:100%; display:block; }
 
-  /* Only two things sit over the video now.
+  /* The three stills stacked in one column at the top left, in order: logo,
+     tree, spectrum. Sharing a single container means they keep one left edge
+     and one width instead of each being positioned separately. */
+  .stack { position:absolute; left:var(--gap); top:var(--gap); z-index:3;
+    width:min(34vw, 320px); display:flex; flex-direction:column; gap:8px;
+    pointer-events:none; }
+  .stack img { display:block; width:100%; height:auto; }
 
-     The tree still used to be a full-frame layer here. Even on screen blend it
-     flattened everything behind it — a 1280x655 image stretched across the
-     whole stage leaves the video almost nothing to show through. It has moved
-     down into the row, where it can be looked at properly. */
+  /* Opaque and mostly black, so screen drops its ground over the video. */
+  .stack .still { mix-blend-mode:screen; }
 
-  /* Pure black silhouette on transparency, so inverted to read on black. Kept
-     to a band along the bottom rather than the full frame. */
-  .spectrum { position:absolute; left:0; right:0; bottom:0; width:100%;
-    max-height:34%; object-fit:contain; object-position:bottom;
-    z-index:2; filter:invert(1); pointer-events:none; }
-
-  .logo { position:absolute; left:50%; top:46%; transform:translate(-50%,-50%);
-    width:min(42vw, 420px); z-index:3; pointer-events:none; }
+  /* A pure black silhouette on transparency: invisible on black until
+     inverted. */
+  .stack .spectrum { filter:invert(1); }
 
   /* The other clips sit BELOW where the logo ends, not over it. */
   .strip { display:flex; flex-wrap:wrap; gap:var(--gap); padding:var(--gap); }
   .strip video, .strip img { flex:1 1 260px; min-width:0; width:100%; height:auto;
     display:block; background:#111; }
 
-  .ui { padding:6px var(--gap) 26px; }
+  .ui { padding:6px var(--gap) 26px; text-align:center; }
   .ui a, .ui button {
     background:rgba(0,0,0,.45); color:#fff; border:1px solid rgba(255,255,255,.45);
     padding:6px 12px; margin:0 6px 8px 0; cursor:pointer; text-decoration:none;
     font:inherit; border-radius:3px; display:inline-block;
   }
   .ui a:hover, .ui button:hover { background:#fff; color:#000; }
-  .credit { margin:10px 0 0; max-width:60ch; color:#cfcfcf; font-size:13px; }
+  .credit { margin:10px auto 0; max-width:60ch; color:#cfcfcf; font-size:13px; }
 
   /* Reading text, so not monospace and not full-bleed. */
   .text { max-width:74ch; margin:0 auto; padding:18px var(--gap) 4px;
+    text-align:center;
     font-family:Verdana, Geneva, Tahoma, sans-serif; font-size:14px;
     line-height:1.72; color:#e6e6e6; }
   .text p { margin:0 0 1.1em; }
@@ -59,8 +59,8 @@
   #msg[hidden] { display:none; }
 
   @media (max-width: 600px) {
-    .hero { height:56vh; }
-    .logo { width:70vw; }
+    .hero { height:60vh; }
+    .stack { width:56vw; }
   }
 </style>
 </head>
@@ -68,16 +68,18 @@
 
 <section class="hero">
   <canvas id="c"></canvas>
-  <img class="spectrum" alt=""
-       src="/mdelibre/tg/content/TiempoGranular/shared/ondas_spectravue_transp.png">
-  <img class="logo" alt="TiempoGranular"
-       src="/mdelibre/tg/content/TiempoGranular/shared/tg_logo.png">
+  <div class="stack">
+    <img class="logo" alt="TiempoGranular"
+         src="/mdelibre/tg/content/TiempoGranular/shared/tg_logo.png">
+    <img class="still" alt=""
+         src="/mdelibre/tg/?TiempoGranular.head.160168435816">
+    <img class="spectrum" alt=""
+         src="/mdelibre/tg/content/TiempoGranular/shared/ondas_spectravue_transp.png">
+  </div>
   <div id="msg">cargando…</div>
 </section>
 
 <div class="strip">
-  <img class="clip still-row" alt=""
-       src="/mdelibre/tg/?TiempoGranular.head.160168435816">
   <video class="clip" src="/archivos/arbol.webm" muted loop playsinline preload="metadata"></video>
   <video class="clip" src="/archivos/rarae_aves_2016_web.mp4" muted loop playsinline preload="metadata"></video>
 </div>
