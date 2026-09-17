@@ -29,9 +29,14 @@
   .stack img { position:absolute; left:0; top:0;
     width:100%; height:auto; display:block; }
 
-  /* A pure black silhouette on transparency: shows nothing on black until
-     inverted. */
+  /* Every visible pixel in this PNG measures luminance 0 — a pure black
+     silhouette on transparency. invert(1) maps that black to pure white, which
+     is the only reason it is visible at all on a black page. */
   .stack .spectrum { filter:invert(1); }
+
+  /* Order matters more than z-index here: .stack img are absolutely positioned
+     siblings, so the one written LAST paints on top. The logo is last so it
+     sits in front of the spectrum. */
 
   /* The other clips sit BELOW where the logo ends, not over it. */
   .strip { display:flex; flex-wrap:wrap; gap:var(--gap); padding:var(--gap); }
@@ -76,10 +81,10 @@
 <section class="hero">
   <canvas id="c"></canvas>
   <div class="stack">
-    <img class="logo" alt="TiempoGranular"
-         src="/mdelibre/tg/content/TiempoGranular/shared/tg_logo.png">
     <img class="spectrum" alt=""
          src="/mdelibre/tg/content/TiempoGranular/shared/ondas_spectravue_transp.png">
+    <img class="logo" alt="TiempoGranular"
+         src="/mdelibre/tg/content/TiempoGranular/shared/tg_logo.png">
   </div>
   <div id="msg">cargando…</div>
 </section>
