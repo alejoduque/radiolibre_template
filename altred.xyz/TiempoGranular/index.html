@@ -9,32 +9,35 @@
   html, body { margin:0; background:#000; color:#fff; }
   body { font:14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
-  /* Hero: a single hydra output with the logo over it. One output rather than
-     four because the logo is a transparent PNG — over a 2x2 grid it sat on
-     whatever each quadrant happened to be doing and became unreadable. The
-     storm clip is the one with enough white to carry it. */
-  .hero { position:relative; width:100%; height:72vh; min-height:320px;
-    overflow:hidden; background:#000; }
-  #c { position:absolute; inset:0; width:100%; height:100%; display:block; }
-  /* Layered over the hydra output, bottom to top: the still, the spectrum,
-     then the logo. */
+  /* The stage is sized to the storm clip's own frame — 720x576, a 5:4 box.
+     The stills are much wider (1280x655 is 1.95:1, the spectrum 1.49:1), so
+     stretching them to fill this box is what made them overflow and crop.
+     object-fit:contain fits each one whole inside the same frame instead.
+     No opacity on any of them: the blend mode and the alpha channel do the
+     work, and dimming them only made them muddy. */
+  .hero { display:flex; align-items:center; justify-content:center;
+    padding:var(--gap); background:#000; }
+  .stage { position:relative; width:100%; max-width:960px;
+    aspect-ratio:720 / 576; background:#000; }
 
-  /* This PNG is fully opaque and mostly black (median luminance 7) with bright
-     highlights. screen drops the black ground and keeps the highlights, so it
-     sits over the video without a visible rectangle. */
-  .still { position:absolute; inset:0; width:100%; height:100%;
-    object-fit:cover; z-index:1; mix-blend-mode:screen; opacity:.9;
+  #c, .still, .spectrum { position:absolute; inset:0;
+    width:100%; height:100%; }
+  #c { display:block; }
+
+  /* Fully opaque and mostly black (median luminance 7) with bright highlights;
+     screen drops the black ground and keeps the highlights. */
+  .still { object-fit:contain; z-index:1; mix-blend-mode:screen;
     pointer-events:none; }
 
-  /* The spectrum is a PURE BLACK silhouette on transparency — every visible
-     pixel measures luminance 0. On a black page it is invisible, and under
-     screen it disappears entirely, which is what happened to it before.
-     Inverting turns the silhouette white so it reads. */
-  .spectrum { position:absolute; left:0; right:0; bottom:0; width:100%;
-    z-index:2; filter:invert(1); opacity:.55; pointer-events:none; }
+  /* A pure black silhouette on transparency — every visible pixel measures
+     luminance 0, so on a black page it shows nothing at all. Inverting turns
+     the silhouette white; its own alpha channel handles the rest, so it needs
+     no blend mode. */
+  .spectrum { object-fit:contain; z-index:2; filter:invert(1);
+    pointer-events:none; }
 
   .logo { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-    width:min(46vw, 430px); z-index:3; pointer-events:none; }
+    width:56%; max-width:430px; z-index:3; pointer-events:none; }
 
   /* The other clips sit BELOW where the logo ends, not over it. */
   .strip { display:flex; flex-wrap:wrap; gap:var(--gap); padding:var(--gap); }
@@ -50,6 +53,13 @@
   .ui a:hover, .ui button:hover { background:#fff; color:#000; }
   .credit { margin:10px 0 0; max-width:60ch; color:#cfcfcf; font-size:13px; }
 
+  /* Reading text, so not monospace and not full-bleed. */
+  .text { max-width:74ch; margin:0 auto; padding:18px var(--gap) 4px;
+    font-family:Verdana, Geneva, Tahoma, sans-serif; font-size:14px;
+    line-height:1.72; color:#e6e6e6; }
+  .text p { margin:0 0 1.1em; }
+  .text a { color:#fff; }
+
   #msg { position:absolute; inset:0; display:flex; align-items:center;
     justify-content:center; z-index:4; background:rgba(0,0,0,.5);
     cursor:pointer; text-align:center; }
@@ -64,6 +74,7 @@
 <body>
 
 <section class="hero">
+  <div class="stage">
   <canvas id="c"></canvas>
   <img class="still" alt=""
        src="/mdelibre/tg/?TiempoGranular.head.160168435816">
@@ -72,11 +83,17 @@
   <img class="logo" alt="TiempoGranular"
        src="/mdelibre/tg/content/TiempoGranular/shared/tg_logo.png">
   <div id="msg">cargando…</div>
+  </div>
 </section>
 
 <div class="strip">
   <video class="clip" src="/archivos/arbol.webm" muted loop playsinline preload="metadata"></video>
   <video class="clip" src="/archivos/rarae_aves_2016_fast.mp4" muted loop playsinline preload="metadata"></video>
+</div>
+
+<div class="text">
+<p>¿Cómo suena la noche contrastada al dia? Este proyecto pretende convertir el espacio del Museo en un instrumento científico ubicado en el cruce específico planetario de Lat 6.2525, Lon -75.569167. Desde allí monitorearé con instrumentos científicos durante 3 días - 72 horas, recolectando in-situ datos del aire, niveles de ruido y el cielo. Daremos cuenta de 3 tipos de polución: aire, ruido, luz y las contrastaré de manera poética al ser presentadas vía una interfaz web que permitirá ver el cielo con un lente gran angular en tiempo real, mientras escuchamos la grabación del audio correspondiente a los sonidos ocurridos 12h antes con un micrófono de frontera amplia. El día será la noche. La noche sera el día. Dicha interfaz también presentará los datos de niveles acústicos, de material particulado en el aire pm2.5 y nos dejará ver la alta contaminación lumínica en el centro de la ciudad durante la noche gracias al uso de una cámara especial para el registro de meteoros. Será una interfaz más contemplativa que científica donde se presentarán en video los registros más significativos de las 72 horas de captura. Aves, aviones, truenos, satélites, ovnis(?) acompañados de los ruidos de la noche y del dia, lejanos y cercanos en el tiempo granular.</p>
+<p>La intención es montar una pequeña estación de monitoreo temporal (un fin de semana) en el patio central del Museo de Antioquia para recolectar datos durante 3 días, iniciando un viernes y terminando el lunes siguiente. Con una cámara que mira al cielo para intentar captar el paso de meteoros de marca Wattec y usada por experimentos de la NASA, se registrarán 72 horas en total de imágenes de video del cielo de la cuidad, tanto de día como de noche para ser contrastadas con la grabación digital acústica, usando un micrófono especial ambiental o de límite (boundary mic de AKG). Los niveles de ruido y de pm2.5 (material particulado) serán obtenidos con el sensor AQA creado con el colectivo un/loquer <a href="https://alejo.radiolibre.cc/">https://alejo.radiolibre.cc/</a> agentes-sensores</p>
 </div>
 
 <div class="ui">
