@@ -16,18 +16,23 @@
     overflow:hidden; background:#000; }
   #c { position:absolute; inset:0; width:100%; height:100%; display:block; }
 
-  /* The three stills stacked in one column at the top left, in order: logo,
-     tree, spectrum. Sharing a single container means they keep one left edge
-     and one width instead of each being positioned separately. */
-  .stack { position:absolute; left:var(--gap); top:var(--gap); z-index:3;
-    width:min(34vw, 320px); display:flex; flex-direction:column; gap:8px;
-    pointer-events:none; }
-  .stack img { display:block; width:100%; height:auto; }
+  /* The three stills superimposed, every one anchored at the same 0,0 and
+     given the same width, so they overlay rather than sit beside each other.
+     Each is absolutely positioned inside the container; since they have
+     different aspect ratios they end at different heights, but all share the
+     top-left origin.
 
-  /* Opaque and mostly black, so screen drops its ground over the video. */
+     Deliberately large enough to cover much of the video — the stills are the
+     subject here and the cycling clips are the ground behind them. */
+  .stack { position:absolute; left:0; top:0; z-index:3;
+    width:min(64vw, 660px); pointer-events:none; }
+  .stack img { position:absolute; left:0; top:0;
+    width:100%; height:auto; display:block; }
+
+  /* Opaque and mostly black, so screen drops its ground over what is beneath. */
   .stack .still { mix-blend-mode:screen; }
 
-  /* A pure black silhouette on transparency: invisible on black until
+  /* A pure black silhouette on transparency: shows nothing on black until
      inverted. */
   .stack .spectrum { filter:invert(1); }
 
@@ -47,7 +52,6 @@
 
   /* Reading text, so not monospace and not full-bleed. */
   .text { max-width:74ch; margin:0 auto; padding:18px var(--gap) 4px;
-    text-align:center;
     font-family:Verdana, Geneva, Tahoma, sans-serif; font-size:14px;
     line-height:1.72; color:#e6e6e6; }
   .text p { margin:0 0 1.1em; }
@@ -60,7 +64,7 @@
 
   @media (max-width: 600px) {
     .hero { height:60vh; }
-    .stack { width:56vw; }
+    .stack { width:86vw; }
   }
 </style>
 </head>
@@ -86,7 +90,7 @@
 
 <div class="text">
 <p>¿Cómo suena la noche contrastada al dia? Este proyecto pretende convertir el espacio del Museo en un instrumento científico ubicado en el cruce específico planetario de Lat 6.2525, Lon -75.569167. Desde allí monitorearé con instrumentos científicos durante 3 días - 72 horas, recolectando in-situ datos del aire, niveles de ruido y el cielo. Daremos cuenta de 3 tipos de polución: aire, ruido, luz y las contrastaré de manera poética al ser presentadas vía una interfaz web que permitirá ver el cielo con un lente gran angular en tiempo real, mientras escuchamos la grabación del audio correspondiente a los sonidos ocurridos 12h antes con un micrófono de frontera amplia. El día será la noche. La noche sera el día. Dicha interfaz también presentará los datos de niveles acústicos, de material particulado en el aire pm2.5 y nos dejará ver la alta contaminación lumínica en el centro de la ciudad durante la noche gracias al uso de una cámara especial para el registro de meteoros. Será una interfaz más contemplativa que científica donde se presentarán en video los registros más significativos de las 72 horas de captura. Aves, aviones, truenos, satélites, ovnis(?) acompañados de los ruidos de la noche y del dia, lejanos y cercanos en el tiempo granular.</p>
-<p>La intención es montar una pequeña estación de monitoreo temporal (un fin de semana) en el patio central del Museo de Antioquia para recolectar datos durante 3 días, iniciando un viernes y terminando el lunes siguiente. Con una cámara que mira al cielo para intentar captar el paso de meteoros de marca Wattec y usada por experimentos de la NASA, se registrarán 72 horas en total de imágenes de video del cielo de la cuidad, tanto de día como de noche para ser contrastadas con la grabación digital acústica, usando un micrófono especial ambiental o de límite (boundary mic de AKG). Los niveles de ruido y de pm2.5 (material particulado) serán obtenidos con el sensor AQA creado con el colectivo un/loquer <a href="https://alejo.radiolibre.cc/">https://alejo.radiolibre.cc/</a> agentes-sensores</p>
+<p>La intención es montar una pequeña estación de monitoreo temporal (un fin de semana) en el patio central del Museo de Antioquia para recolectar datos durante 3 días, iniciando un viernes y terminando el lunes siguiente. Con una cámara que mira al cielo para intentar captar el paso de meteoros de marca Wattec y usada por experimentos de la NASA, se registrarán 72 horas en total de imágenes de video del cielo de la cuidad, tanto de día como de noche para ser contrastadas con la grabación digital acústica, usando un micrófono especial ambiental o de límite (boundary mic de AKG). Los niveles de ruido y de pm2.5 (material particulado) serán obtenidos con el sensor AQA creado con el colectivo un/loquer agentes-sensores</p>
 </div>
 
 <div class="ui">
