@@ -64,6 +64,12 @@ PUBLISH=(
 # Names are matched at any depth. Add the folder name, not a path.
 PRIVATE=(
   # privado-url-larga-x7f3
+  # Whole sites that sit as folders of the webroot and are linked from the top
+  # nav instead. Walking them would list TiempoGranular as a lone README.md
+  # (its index.html is ignored) and gpslogs as hundreds of pages the nav link
+  # already reaches.
+  TiempoGranular
+  gpslogs
 )
 
 # Other sites to link to, as "URL|Label" pairs. These are listed as links, not
@@ -704,6 +710,8 @@ footer {{ margin-top:40px; border-top:1px solid #333; padding-top:12px; }}
 <nav class="top">
 <a href="https://radiolibre.altred.xyz/">radiolibre <span class="arw">&#8599;</span></a>
 <a href="/Portafolio_ParlamentoDeLoVivo.html">Parlamento de lo Vivo <span class="arw">&#8599;</span></a>
+<a href="/TiempoGranular/">TiempoGranular <span class="arw">&#8599;</span></a>
+<a href="/gpslogs/">GPS logs hasta 2005 <span class="arw">&#8599;</span></a>
 </nav>
 {f'<h1>{html.escape(title)}</h1>' if title else ''}
 {f'<p class="intro">{html.escape(intro)}</p>' if intro else ''}
