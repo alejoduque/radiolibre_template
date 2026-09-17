@@ -712,6 +712,7 @@ footer {{ margin-top:40px; border-top:1px solid #333; padding-top:12px; }}
 <a href="/Portafolio_ParlamentoDeLoVivo.html">Parlamento de lo Vivo <span class="arw">&#8599;</span></a>
 <a href="/TiempoGranular/">TiempoGranular <span class="arw">&#8599;</span></a>
 <a href="/gpslogs/">GPS logs hasta 2005 <span class="arw">&#8599;</span></a>
+<a href="https://etc.altred.xyz/">etc <span class="arw">&#8599;</span></a>
 </nav>
 {f'<h1>{html.escape(title)}</h1>' if title else ''}
 {f'<p class="intro">{html.escape(intro)}</p>' if intro else ''}
