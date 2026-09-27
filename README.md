@@ -15,8 +15,4 @@ The original `radiolibre.cc` template. Kept for reference — its player points 
 
 ## altred.xyz
 
-Pages and tools for the archive host. `altred.xyz/TiempoGranular/` is the
-hydra page; `server/nginx/altred.xyz.conf` is the vhost; `tools/` holds the
-index generator and the publish scripts, all fetched onto the server with
-`curl` from this repo. Sites uploaded as a tarball (the GPS logs site at
-`/gpslogs/`) go in through `tools/install-tar-site.sh`.
+Moved to its own private repository, `alejoduque/altred.xyz` (history kept).
