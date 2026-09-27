@@ -11,8 +11,8 @@ assets/
   js/
     config.js       endpoints, timings, asset version — start here
     icecast.js      reads the Icecast status, normalises it into a stream list
-    player.js       drives the <audio> element, reconnects when streams drop
-    ui.js           all DOM writes
+    player.js       drives one <audio> element, reconnects when its stream drops
+    ui.js           the station cards (one player each) and all DOM writes
     main.js         wiring plus the polling loop
 test/
   icecast.test.mjs  regression tests for the status parsing
@@ -99,8 +99,12 @@ stream list is an expected state with its own message, not an error.
 ## How the player behaves
 
 - Polls the status every 20s, and only while the tab is visible.
-- Rebuilds the dropdown only when the set of mounts actually changes, so it does
-  not snap shut under someone mid-selection.
+- Shows one card per live mount, each its own player: play/pause, volume
+  (remembered per mount), now playing, listeners, bitrate. Polls add, update and
+  retire cards; a card that is playing is never rebuilt, and one whose mount
+  drops out of the status stays until its listener stops it.
+- One stream at a time: starting a card pauses whichever other one was playing.
+- No volume slider on iOS, which ignores `audio.volume`; mute still shows.
 - Reconnects with exponential backoff (1s, 2s, 4s… capped at 30s, 10 attempts)
   when a stream drops, then offers a manual retry button.
 - Watches `currentTime` for stalls. Live streams usually go quiet rather than

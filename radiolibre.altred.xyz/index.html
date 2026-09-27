@@ -10,7 +10,7 @@
     <!-- ?v= on the asset URLs is deliberate: nginx serves .js and .css here as
          `immutable` for a year, so an update only reaches returning listeners
          if the URL changes. Bump every ?v= together. See assets/js/config.js. -->
-    <link rel="stylesheet" href="./assets/styles.css?v=1">
+    <link rel="stylesheet" href="./assets/styles.css?v=2">
 </head>
 
 <body>
@@ -31,32 +31,12 @@
                 </p>
             </div>
 
-            <section class="player" aria-label="Reproductor de radio en vivo">
-                <div class="player__controls">
-                    <label class="player__label" for="stream-select">Transmisión</label>
-                    <select id="stream-select" class="player__select" disabled>
-                        <option value="">Buscando transmisiones...</option>
-                    </select>
-
-                    <!-- preload="none" so the page does not open a stream
-                         connection before anyone asks to listen. -->
-                    <audio id="audio" class="player__audio" controls preload="none"></audio>
-                </div>
-
-                <p id="player-status" class="player__status" role="status" aria-live="polite"></p>
-
-                <dl id="player-meta" class="player__meta" hidden>
-                    <div class="player__meta-item">
-                        <dt>Suena</dt>
-                        <dd id="meta-now-playing"></dd>
-                    </div>
-                    <div class="player__meta-item">
-                        <dt>Escuchando</dt>
-                        <dd id="meta-listeners"></dd>
-                    </div>
-                </dl>
-
-                <button type="button" id="player-retry" class="player__retry" hidden>Reintentar</button>
+            <section class="stations" aria-labelledby="stations-title">
+                <h2 id="stations-title" class="stations__title">En vivo</h2>
+                <p id="stations-message" class="stations__message" role="status" aria-live="polite"></p>
+                <!-- One card per live mount, filled by assets/js/ui.js. Each
+                     card's audio opens only when someone presses play. -->
+                <ul id="stations" class="stations__list"></ul>
             </section>
         </div>
     </div>
@@ -79,6 +59,6 @@
         </ul>
     </nav>
 
-    <script type="module" src="./assets/js/main.js?v=1"></script>
+    <script type="module" src="./assets/js/main.js?v=2"></script>
 </body>
 </html>

@@ -25,7 +25,7 @@ import {
   RECONNECT_MAX_MS,
   RECONNECT_MAX_ATTEMPTS,
   STALL_TIMEOUT_MS,
-} from './config.js?v=1';
+} from './config.js?v=2';
 
 /**
  * @typedef {'idle'|'connecting'|'playing'|'paused'|'reconnecting'|'error'} PlayerState
@@ -90,6 +90,20 @@ export class StreamPlayer {
     this.#stopWatchdog();
     this.#detach();
     this.#setState('idle');
+  }
+
+  /**
+   * Stop listening but keep the stream, so play() can pick it up again.
+   * Also cancels a pending reconnect: pressing pause while the player is
+   * reconnecting means the listener no longer wants it.
+   */
+  pause() {
+    if (!this.#stream) return;
+    this.#wantsToPlay = false;
+    this.#clearRetry();
+    this.#stopWatchdog();
+    this.#detach();
+    this.#setState('paused');
   }
 
   /** Retry now, after the automatic attempts gave up. */
@@ -233,14 +247,11 @@ export class StreamPlayer {
       this.#scheduleReconnect();
     });
 
-    // The listener pressed pause on the native controls.
+    // Paused from outside our own controls: a headset button or the OS media
+    // keys, through the element's default media session.
     audio.addEventListener('pause', () => {
       if (this.#internal || !this.#wantsToPlay || !this.#stream) return;
-      this.#wantsToPlay = false;
-      this.#clearRetry();
-      this.#stopWatchdog();
-      this.#detach();
-      this.#setState('paused');
+      this.pause();
     });
 
     // The listener pressed play again after we detached the source.
