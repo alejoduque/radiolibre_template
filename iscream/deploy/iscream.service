@@ -1,0 +1,29 @@
+# /etc/systemd/system/iscream.service
+[Unit]
+Description=iScream — navegador → Icecast (reporta.altred.xyz)
+After=network.target icecast2.service
+
+[Service]
+Type=simple
+User=iscream
+Group=iscream
+WorkingDirectory=/opt/iscream
+EnvironmentFile=/etc/iscream/iscream.env
+ExecStart=/usr/bin/node /opt/iscream/server.js
+Restart=always
+RestartSec=2
+
+# Nothing here needs to write anywhere.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
