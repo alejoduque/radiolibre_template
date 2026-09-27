@@ -6,12 +6,10 @@ The live site and player for [radiolibre.altred.xyz](https://radiolibre.altred.x
 Static files, no build step. See [its README](./radiolibre.altred.xyz/README.md)
 for deployment and for the Icecast quirks the player works around.
 
-## iscream — reporta.altred.xyz
+## iScream — reporta.altred.xyz
 
-iScream, the Sistema de Alerta Temprana de Radiolibre: up to 8 people go on air
-at once from a phone browser (`/reporta.mp3` … `/reporta8.mp3`), plus a
-`#radiolibre` chat on a self-hosted Ergo IRC server. Nothing is recorded. See
-[its README](./iscream/README.md).
+The broadcaster behind [reporta.altred.xyz](https://reporta.altred.xyz/) moved to
+its own private repository, `alejoduque/iscream` (history kept).
 
 ## Radiolibre (2020 template)
 
