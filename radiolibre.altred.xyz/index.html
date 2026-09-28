@@ -10,7 +10,7 @@
     <!-- ?v= on the asset URLs is deliberate: nginx serves .js and .css here as
          `immutable` for a year, so an update only reaches returning listeners
          if the URL changes. Bump every ?v= together. See assets/js/config.js. -->
-    <link rel="stylesheet" href="./assets/styles.css?v=3">
+    <link rel="stylesheet" href="./assets/styles.css?v=5">
 </head>
 
 <body>
@@ -39,17 +39,47 @@
                      card's audio opens only when someone presses play. -->
                 <ul id="stations" class="stations__list"></ul>
             </section>
+
+            <!-- #radiolibre on reporta.altred.xyz's IRC server (Ergo), linked to
+                 the Radiolibre Telegram group. assets/js/chat.js is a copy of
+                 iScream's client; data-irc points it at reporta. -->
+            <section class="chat-panel" aria-labelledby="chat-title">
+                <h2 id="chat-title" class="stations__title">Chat #radiolibre</h2>
+
+                <form class="chat__join" id="chat-join" data-irc="wss://reporta.altred.xyz/irc">
+                    <label for="chat-nick" class="visually-hidden">Tu apodo</label>
+                    <input id="chat-nick" name="nick" maxlength="20" placeholder="apodo" autocomplete="off" autocapitalize="off" spellcheck="false">
+                    <button type="submit" class="chip">Entrar</button>
+                </form>
+
+                <div class="chat" id="chat" hidden>
+                    <p class="chat__status" id="chat-status" role="status" aria-live="polite"></p>
+                    <ol class="chat__log" id="chat-log" aria-live="polite" aria-relevant="additions"></ol>
+                    <form class="chat__say" id="chat-say">
+                        <label for="chat-input" class="visually-hidden">Mensaje</label>
+                        <input id="chat-input" maxlength="400" placeholder="Escribe… (/nick nuevo, /me acción)" autocomplete="off" enterkeyhint="send">
+                        <button type="submit" class="chip">Enviar</button>
+                    </form>
+                </div>
+
+                <p class="chat__note">
+                    Enlazado con el grupo de Telegram de Radiolibre: lo que escribas también aparece allá.
+                    Actividad de las transmisiones en la <a href="https://reporta.altred.xyz/bitacora/">bitácora</a>.
+                </p>
+            </section>
         </div>
     </div>
 
-    <nav>
+    <!-- The same menu on every Radiolibre page (radiolibre.altred.xyz, reporta, Mestizaje, Bitácora). -->
+    <nav aria-label="Radiolibre">
         <ul>
-            <li><a href="https://lists.riseup.net/www/info/radiolibre" target="_blank" rel="noopener noreferrer">Lista de correos</a></li>
-            <li><a href="https://we.riseup.net/radiolibre" target="_blank" rel="noopener noreferrer">Documentación</a></li>
-            <li><a href="https://reporta.altred.xyz/" target="_blank" rel="noopener noreferrer">Transmitir en vivo</a></li>
-            <li><a href="https://live.altred.xyz/" target="_blank" rel="noopener noreferrer">Estado</a></li>
+            <li><a href="https://radiolibre.altred.xyz/" aria-current="page">Escuchar</a></li>
+            <li><a href="https://reporta.altred.xyz/">Transmitir</a></li>
+            <li><a href="https://reporta.altred.xyz/mestizaje/">Mestizaje</a></li>
+            <li><a href="https://reporta.altred.xyz/bitacora/">Bitácora</a></li>
+            <li><a href="https://live.altred.xyz/">Estado</a></li>
             <li>
-                <a href="https://www.instagram.com/_radiolibre/" target="_blank" rel="noopener noreferrer">
+                <a href="https://www.instagram.com/_radiolibre/" rel="noopener noreferrer">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" aria-hidden="true" focusable="false">
                         <path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8zM398.8 388c-7.8 19.6-22.9 34.7-42.6 42.6-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9c-19.6-7.8-34.7-22.9-42.6-42.6-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1c7.8-19.6 22.9-34.7 42.6-42.6 29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9c19.6 7.8 34.7 22.9 42.6 42.6 11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1z"/>
                     </svg>
@@ -59,6 +89,14 @@
         </ul>
     </nav>
 
-    <script type="module" src="./assets/js/main.js?v=3"></script>
+    <footer class="credits">
+        <p>
+            Parte de iScream, desarrollado para <a href="https://www.instagram.com/_radiolibre/" target="_blank" rel="noopener noreferrer">@_radiolibre</a>
+            por <a href="https://altred.xyz/" target="_blank" rel="noopener noreferrer">ADJ</a>
+        </p>
+    </footer>
+
+    <script type="module" src="./assets/js/main.js?v=5"></script>
+    <script src="./assets/js/chat.js?v=5" defer></script>
 </body>
 </html>

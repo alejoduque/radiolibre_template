@@ -4,7 +4,7 @@
  * modules that talk to Icecast and drive audio never touch markup.
  */
 
-import { StreamPlayer } from './player.js?v=3';
+import { StreamPlayer } from './player.js?v=5';
 
 /** Status line under each card, in the page's language. */
 const STATUS_TEXT = {
@@ -17,7 +17,7 @@ const STATUS_TEXT = {
 /** Page-level message above the cards. */
 const LIST_TEXT = {
   loading: 'Buscando transmisiones...',
-  empty: 'No hay transmisiones en vivo ahora. Vuelve pronto.',
+  empty: 'No hay transmisiones en vivo ahora.',
 };
 
 const DEFAULT_VOLUME = 0.8;

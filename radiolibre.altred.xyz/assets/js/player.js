@@ -25,7 +25,7 @@ import {
   RECONNECT_MAX_MS,
   RECONNECT_MAX_ATTEMPTS,
   STALL_TIMEOUT_MS,
-} from './config.js?v=3';
+} from './config.js?v=5';
 
 /**
  * @typedef {'idle'|'connecting'|'playing'|'paused'|'reconnecting'|'error'} PlayerState

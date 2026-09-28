@@ -24,6 +24,11 @@
   --border: rgba(255, 255, 255, 0.6);
   --glow: rgba(255, 255, 255, 0.3);
   --warn: #ff9b9b;
+  --muted: #8a8a8a;
+  --hairline: rgba(255, 255, 255, 0.25);
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* The centre column: live streams and chat share it, under the tagline. */
+  --column: 640px;
   --alert: #c0392b;
 }
 
@@ -48,6 +53,8 @@ body {
 }
 
 .main-content-wrapper {
+  /* Takes the free height, so the nav and the credits sit together at the bottom. */
+  flex: 1 0 auto;
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
@@ -165,7 +172,7 @@ a:hover {
 
 .stations {
   width: 100%;
-  max-width: 700px;
+  max-width: var(--column);
   margin: 30px auto;
 }
 
@@ -189,7 +196,8 @@ a:hover {
 }
 
 .stations__message {
-  margin: 0;
+  margin: 0 auto;
+  max-width: none;
   padding: 22px 16px;
   border: 1px dashed var(--border);
   border-radius: 18px;
@@ -583,6 +591,151 @@ nav a:focus-visible {
   outline-color: var(--bg);
 }
 
+/* --------------------------------------------------------------------- chat */
+
+/* Components set display:flex/grid, which would otherwise beat [hidden]. */
+[hidden] {
+  display: none !important;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.chat-panel {
+  width: 100%;
+  max-width: var(--column);
+  margin: 0 auto 30px;
+}
+
+.chat__join,
+.chat__say {
+  display: flex;
+  gap: 8px;
+}
+
+.chat__join input,
+.chat__say input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 16px; /* below 16px iOS zooms the page on focus */
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 25px;
+  padding: 10px 16px;
+}
+
+.chat__join input::placeholder,
+.chat__say input::placeholder {
+  color: var(--muted);
+}
+
+.chip {
+  font: inherit;
+  font-size: 0.85em;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--bg);
+  background: var(--fg);
+  border: 1px solid var(--fg);
+  border-radius: 25px;
+  padding: 10px 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.chip:hover {
+  background: var(--bg);
+  color: var(--fg);
+  box-shadow: 0 0 15px var(--glow);
+}
+
+.chat__status {
+  margin: 0 0 8px;
+  max-width: none;
+  text-align: left;
+  font-size: 0.75em;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.chat__status[data-state='error'] {
+  color: var(--warn);
+}
+
+.chat__log {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 12px 14px;
+  height: 40vh;
+  min-height: 200px;
+  max-height: 420px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  font-family: var(--mono);
+  font-size: 0.85em;
+  line-height: 1.45;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.chat__log li {
+  margin: 0 0 2px;
+}
+
+.chat__time {
+  color: var(--muted);
+  margin-right: 6px;
+}
+
+.chat__nick {
+  font-weight: bold;
+}
+
+.chat__nick::after {
+  content: ' ';
+}
+
+.chat__log .is-self .chat__nick {
+  text-decoration: underline;
+}
+
+.chat__log .is-event {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.chat__log .is-action {
+  font-style: italic;
+}
+
+.chat__note {
+  margin: 12px auto 0;
+  max-width: none;
+  font-size: 0.8em;
+  color: var(--muted);
+}
+
+.chat__note a {
+  color: var(--fg-dim);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--hairline);
+  text-underline-offset: 3px;
+}
+
 /* ---------------------------------------------------------------- navigation */
 
 nav {
@@ -605,11 +758,11 @@ nav a {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 20px;
+  padding: 11.4px 19px; /* 95% of the original pill */
   border: 1px solid var(--fg);
   border-radius: 25px;
   text-transform: uppercase;
-  font-size: 0.9em;
+  font-size: 0.855em;
   font-weight: bold;
 }
 
@@ -620,9 +773,34 @@ nav a:hover {
 }
 
 nav a svg {
-  width: 20px;
-  height: 20px;
+  width: 19px;
+  height: 19px;
   fill: currentColor;
+}
+
+/* ------------------------------------------------------------------ credits */
+
+.credits {
+  margin: 18px auto 0;
+  font-size: 0.75em;
+  color: var(--muted);
+  text-align: center;
+}
+
+.credits p {
+  margin: 0 auto;
+}
+
+.credits a {
+  color: var(--fg-dim);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--hairline);
+  text-underline-offset: 3px;
+}
+
+.credits a:hover {
+  text-decoration-color: var(--fg-dim);
 }
 
 /* -------------------------------------------------------------- responsive */
