@@ -15,7 +15,7 @@
  * (This constant is documentation — a static `import` cannot interpolate it.
  * It is here so there is one obvious place recording what the number means.)
  */
-export const ASSET_VERSION = 2;
+export const ASSET_VERSION = 3;
 
 /** Hostnames where there is no Icecast behind the page. */
 const DEV_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '']);

@@ -10,7 +10,7 @@
     <!-- ?v= on the asset URLs is deliberate: nginx serves .js and .css here as
          `immutable` for a year, so an update only reaches returning listeners
          if the URL changes. Bump every ?v= together. See assets/js/config.js. -->
-    <link rel="stylesheet" href="./assets/styles.css?v=2">
+    <link rel="stylesheet" href="./assets/styles.css?v=3">
 </head>
 
 <body>
@@ -26,8 +26,9 @@
             <div class="text">
                 <h1>La Radio, lugar común</h1>
                 <p class="tagline">
-                    Creamos de manera colaborativa transmisiónes para compartir lo que esté pasando.
-                    Shared net.radio streams by socially involved groups desde/from *subamerica #TodoEsRadio!
+                    <span class="tagline__lead">Creamos de manera colaborativa transmisiones para compartir lo que esté pasando.</span>
+                    <span class="tagline__en">Shared net.radio streams by socially involved groups from *SubAmerica.</span>
+                    <span class="tagline__tag">#TodoEsRadio!</span>
                 </p>
             </div>
 
@@ -47,7 +48,6 @@
             <li><a href="https://we.riseup.net/radiolibre" target="_blank" rel="noopener noreferrer">Documentación</a></li>
             <li><a href="https://reporta.altred.xyz/" target="_blank" rel="noopener noreferrer">Transmitir en vivo</a></li>
             <li><a href="https://live.altred.xyz/" target="_blank" rel="noopener noreferrer">Estado</a></li>
-            <li><a href="mailto:ping@altred.xyz">Contacto</a></li>
             <li>
                 <a href="https://www.instagram.com/_radiolibre/" target="_blank" rel="noopener noreferrer">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" aria-hidden="true" focusable="false">
@@ -59,6 +59,6 @@
         </ul>
     </nav>
 
-    <script type="module" src="./assets/js/main.js?v=2"></script>
+    <script type="module" src="./assets/js/main.js?v=3"></script>
 </body>
 </html>

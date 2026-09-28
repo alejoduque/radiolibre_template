@@ -4,7 +4,7 @@
  * modules that talk to Icecast and drive audio never touch markup.
  */
 
-import { StreamPlayer } from './player.js?v=2';
+import { StreamPlayer } from './player.js?v=3';
 
 /** Status line under each card, in the page's language. */
 const STATUS_TEXT = {

@@ -82,6 +82,32 @@ p {
 .tagline {
   font-size: 1.17em;
   font-weight: bold;
+  /* Wider than other paragraphs so the Spanish lead fits on one line. */
+  max-width: 760px;
+}
+
+.tagline span {
+  display: block;
+}
+
+/* Three lines at any width: the first two shrink with the viewport instead
+   of wrapping (about 80 and 70 characters across the column). */
+.tagline__lead,
+.tagline__en {
+  white-space: nowrap;
+}
+
+.tagline__lead {
+  font-size: clamp(7px, 2.05vw, 0.82em);
+  margin-bottom: 4px;
+}
+
+.tagline__en {
+  font-size: clamp(8px, 2.3vw, 0.92em);
+}
+
+.tagline__tag {
+  margin-top: 2px;
 }
 
 a {
