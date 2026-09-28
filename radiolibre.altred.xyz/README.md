@@ -14,9 +14,19 @@ assets/
     player.js       drives one <audio> element, reconnects when its stream drops
     ui.js           the station cards (one player each) and all DOM writes
     main.js         wiring plus the polling loop
+    chat.js         the #radiolibre chat (a copy of iScream's www/js/chat.js; keep in step)
 test/
   icecast.test.mjs  regression tests for the status parsing
 ```
+
+## Chat, menu and credits
+
+- **Chat.** The chat under the live streams is iScream's IRC client. It connects to
+  `wss://reporta.altred.xyz/irc` (set by `data-irc` on `#chat-join`), where Ergo accepts this origin. That
+  channel is linked both ways with the Radiolibre Telegram group. See the iScream repo (private,
+  `alejoduque/iscream`).
+- **Menu and footer.** They are the same on every Radiolibre page (this one, reporta, Mestizaje, Bitácora),
+  minus the link to the page you're on.
 
 ## Running locally
 
