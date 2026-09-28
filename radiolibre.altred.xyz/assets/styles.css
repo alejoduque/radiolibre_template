@@ -721,6 +721,11 @@ nav a:focus-visible {
   font-style: italic;
 }
 
+/* The last lines from before you arrived (from reporta's bitácora): dimmed. */
+.chat__log .is-history {
+  opacity: 0.5;
+}
+
 .chat__note {
   margin: 12px auto 0;
   max-width: none;

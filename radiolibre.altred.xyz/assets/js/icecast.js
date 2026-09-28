@@ -18,7 +18,7 @@
  *     so URLs are always rebuilt against ICECAST_ORIGIN.
  */
 
-import { ICECAST_ORIGIN, STATUS_PATH, STATUS_TIMEOUT_MS } from './config.js?v=5';
+import { ICECAST_ORIGIN, STATUS_PATH, STATUS_TIMEOUT_MS } from './config.js?v=6';
 
 /**
  * Repair the ways Icecast produces text that `JSON.parse` refuses: trailing

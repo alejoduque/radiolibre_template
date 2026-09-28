@@ -3,9 +3,9 @@
  * that keeps it current. Each card owns its own player; see ui.js.
  */
 
-import { POLL_INTERVAL_MS } from './config.js?v=5';
-import { fetchStreams } from './icecast.js?v=5';
-import { StationList } from './ui.js?v=5';
+import { POLL_INTERVAL_MS } from './config.js?v=6';
+import { fetchStreams } from './icecast.js?v=6';
+import { StationList } from './ui.js?v=6';
 
 const stations = new StationList({
   list: document.getElementById('stations'),

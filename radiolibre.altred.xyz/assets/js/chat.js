@@ -19,6 +19,10 @@
   // Same-origin /irc by default; a page on another host (radiolibre.altred.xyz)
   // points at reporta's with data-irc on the join form. Ergo only accepts the
   // origins listed in its allowed-origins.
+  // The last lines come from the bitácora (the puente writes every channel line
+  // there); another host points at reporta's with data-log.
+  var LOG_URL = document.getElementById('chat-join').getAttribute('data-log') || '/bitacora.json';
+  var HISTORY_LINES = 10;
   var URL_ = document.getElementById('chat-join').getAttribute('data-irc') ||
     (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/irc';
   var NICK_KEY = 'iscream.nick';
@@ -90,13 +94,24 @@
     return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   }
 
-  function add(kind, nick, text) {
+  // A time for a stored line: "23:24" today, "27/09 23:24" before.
+  function stamp(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return '';
+    var p2 = function (n) { return String(n).padStart(2, '0'); };
+    var today = new Date();
+    var day = d.toDateString() === today.toDateString() ? '' : p2(d.getDate()) + '/' + p2(d.getMonth() + 1) + ' ';
+    return day + p2(d.getHours()) + ':' + p2(d.getMinutes());
+  }
+
+  function add(kind, nick, text, opts) {
+    opts = opts || {};
     var nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
     var li = document.createElement('li');
-    li.className = 'is-' + kind + (nick && nick === me ? ' is-self' : '');
+    li.className = 'is-' + kind + (nick && nick === me && !opts.history ? ' is-self' : '') + (opts.history ? ' is-history' : '');
     var t = document.createElement('span');
     t.className = 'chat__time';
-    t.textContent = hhmm();
+    t.textContent = opts.time || hhmm();
     li.appendChild(t);
     if (nick && kind !== 'event') {
       var n = document.createElement('span');
@@ -105,7 +120,8 @@
       li.appendChild(n);
     }
     li.appendChild(document.createTextNode(stripFormatting(text)));
-    log.appendChild(li);
+    if (opts.before) log.insertBefore(li, opts.before);
+    else log.appendChild(li);
     while (log.children.length > MAX_LINES) log.removeChild(log.firstChild);
     if (nearBottom || nick === me) log.scrollTop = log.scrollHeight;
   }
@@ -166,7 +182,7 @@
         if (m.nick === me) {
           joined = true;
           setStatus('En ' + CHANNEL + ' como ' + me);
-          add('event', '', 'Entraste a ' + CHANNEL + '. Aquí queda solo el historial en texto de los intercambios y las transmisiones, enlazado con el grupo de Telegram de Radiolibre.');
+          add('event', '', 'Entraste a ' + CHANNEL + '. Lo que escribas queda en la bitácora pública y en el grupo de Telegram de Radiolibre.');
         } else {
           add('event', '', m.nick + ' entró');
         }
@@ -238,6 +254,8 @@
     store(NICK_KEY, wanted);
     joinForm.hidden = true;
     chat.hidden = false;
+    sayForm.hidden = false;
+    clearInterval(historyTimer); // from here on it's live
     connect();
     input.focus();
   });
@@ -269,6 +287,39 @@
     leaving = true;
     send('QUIT :chao');
   });
+
+  // ------------------------------------------------------------ last lines
+
+  /**
+   * Before joining, the window already shows the last lines of the channel
+   * (from the bitácora), dimmed, so whoever arrives sees what was going on.
+   * They refresh until you join; after that the chat is live.
+   */
+  function loadHistory() {
+    if (joined || !window.fetch) return;
+    var url = LOG_URL + (LOG_URL.indexOf('?') < 0 ? '?' : '&') + 'solo=chat&ultimos=' + HISTORY_LINES;
+    fetch(url, { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (data) {
+      if (joined) return;
+      var old = log.querySelectorAll('.is-history');
+      for (var i = 0; i < old.length; i++) old[i].remove();
+      var first = log.firstChild;
+      var eventos = (data && data.eventos) || [];
+      if (!eventos.length) {
+        add('event', '', 'Todavía no hay mensajes en el chat.', { history: true, before: first, time: ' ' });
+      }
+      eventos.forEach(function (ev) {
+        var me_ = /^\* /.test(ev.texto);
+        add(me_ ? 'action' : 'msg', ev.nick, me_ ? ' ' + ev.texto.slice(2) : ev.texto, { history: true, before: first, time: stamp(ev.t) });
+      });
+      log.scrollTop = log.scrollHeight;
+    }).catch(function () { /* no history: the live chat still works */ });
+  }
+
+  chat.hidden = false;
+  sayForm.hidden = true;
+  setStatus('Últimos mensajes · elige un apodo para escribir');
+  loadHistory();
+  var historyTimer = setInterval(function () { if (!document.hidden) loadHistory(); }, 30000);
 
   var saved = store(NICK_KEY);
   if (saved) nickInput.value = saved;
